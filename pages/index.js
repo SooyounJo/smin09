@@ -31,6 +31,14 @@ export default function HomePage() {
             </span>
             <span className={styles.cardCta}> /site 로 이동 →</span>
           </Link>
+          <Link href="/canvas/sensory" className={styles.card}>
+            <span className={styles.cardTitle}>감각 심상 (메인)</span>
+            <span className={styles.cardDesc}>
+              이미지 업로드 → AI 감성 분석 → WebGL 키컬러 · 향 노트 ·
+              사운드스케이프.
+            </span>
+            <span className={styles.cardCta}> /canvas/sensory →</span>
+          </Link>
           <Link href="/canvas" className={styles.card}>
             <span className={styles.cardTitle}>Canvas / WebGL 영역</span>
             <span className={styles.cardDesc}>

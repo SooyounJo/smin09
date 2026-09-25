@@ -1,4 +1,5 @@
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import CanvasLayout from "@/components/layout/CanvasLayout";
 import styles from "@/styles/layouts/canvas.module.css";
 
@@ -16,6 +17,10 @@ function CanvasHomePage() {
     <>
       <CanvasStage />
       <div className={styles.overlayPanel}>
+        <Link href="/canvas/sensory" style={{ pointerEvents: "auto", textDecoration: "underline" }}>
+          감각 심상 워크벤치 →
+        </Link>
+        <br />
         <strong>Canvas / WebGL 존</strong>
         <br />
         `components/canvas`에 WebGL 렌더러를 두고, API로 받은 데이터를
