@@ -1,25 +1,58 @@
-/**
- * Replicate MusicGen / Stable Audio 등 연동용 스텁.
- * POST { prompt, tempo, energy } → { audioUrl } (추후 구현)
- */
+import { buildLyriaPrompt } from "@/lib/sensory/buildMusicPrompt";
+import { hasGeminiKey } from "@/lib/sensory/env";
+import { generateLyriaMusic } from "@/lib/sensory/providers/lyriaMusic";
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "12mb",
+    },
+    responseLimit: false,
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { prompt, tempo, energy } = req.body || {};
-
-  if (!process.env.REPLICATE_API_TOKEN) {
+  if (!hasGeminiKey()) {
     return res.status(501).json({
-      error: "REPLICATE_API_TOKEN not configured",
-      hint: "클라이언트 AmbientSoundscape(Web Audio)를 사용하거나 Replicate MusicGen을 연결하세요.",
-      profile: { prompt, tempo, energy },
+      error: "GEMINI_API_KEY not configured",
+      hint: "Lyria는 Google AI Studio 키(GEMINI_API_KEY)가 필요합니다. OpenAI Vision과 별도로 .env에 추가하세요.",
     });
   }
 
-  return res.status(501).json({
-    error: "Music generation not implemented yet",
-    hint: "replicate.run('meta/musicgen', { input: { prompt } }) 패턴으로 확장",
-  });
+  const { analysis, imageDataUrl } = req.body || {};
+  if (!analysis || typeof analysis !== "object") {
+    return res.status(400).json({ error: "analysis object is required" });
+  }
+
+  const prompt = buildLyriaPrompt(analysis);
+
+  try {
+    const result = await generateLyriaMusic({
+      prompt,
+      imageDataUrl: typeof imageDataUrl === "string" ? imageDataUrl : null,
+    });
+
+    if (!result) {
+      return res.status(502).json({ error: "Lyria generation failed" });
+    }
+
+    const dataUrl = `data:${result.mimeType};base64,${result.base64}`;
+
+    return res.status(200).json({
+      provider: "lyria",
+      model: result.model,
+      mimeType: result.mimeType,
+      dataUrl,
+      lyrics: result.lyrics,
+      promptUsed: prompt.slice(0, 500),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Lyria failed";
+    return res.status(502).json({ error: message });
+  }
 }

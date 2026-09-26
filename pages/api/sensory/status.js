@@ -14,6 +14,8 @@ export default function handler(req, res) {
     provider: provider || "mock",
     openaiKeySet: hasOpenAIKey(),
     geminiKeySet: hasGeminiKey(),
+    lyriaReady: hasGeminiKey(),
+    lyriaModel: process.env.LYRIA_MODEL || "lyria-3-clip-preview",
     model:
       provider === "openai"
         ? process.env.OPENAI_VISION_MODEL || "gpt-4o-mini"

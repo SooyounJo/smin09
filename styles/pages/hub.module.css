@@ -5,7 +5,10 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
-  gap: 2rem;
+  gap: 2.5rem;
+  background: #000;
+  color: #fff;
+  color-scheme: dark;
 }
 
 .title {
@@ -13,50 +16,49 @@
   font-weight: 700;
   letter-spacing: -0.03em;
   text-align: center;
+  color: #fff;
 }
 
-.lead {
-  max-width: 36rem;
-  text-align: center;
-  line-height: 1.6;
-  opacity: 0.85;
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
-  width: 100%;
-  max-width: 720px;
-}
-
-.card {
+.actions {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1.25rem;
-  border-radius: 12px;
-  border: 1px solid rgba(127, 127, 127, 0.3);
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 300px;
 }
 
-.card:hover {
-  border-color: rgba(99, 102, 241, 0.55);
-  transform: translateY(-2px);
-}
-
-.cardTitle {
+.actionBtn {
+  display: block;
+  padding: 0.95rem 1.35rem;
+  text-align: center;
   font-weight: 600;
+  font-size: 1rem;
+  color: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
-.cardDesc {
-  font-size: 0.9rem;
-  opacity: 0.8;
-  line-height: 1.5;
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.38);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
 }
 
-.cardCta {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #6366f1;
+.actionBtn:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.08);
 }

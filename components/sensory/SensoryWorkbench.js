@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AmbientSoundEngine } from "@/lib/sensory/ambientEngine";
+import { AudioMotionBridge } from "@/lib/sensory/audioMotionBridge";
 import dynamic from "next/dynamic";
 import { apiFetch } from "@/lib/api/client";
 import {
@@ -54,7 +55,15 @@ export default function SensoryWorkbench() {
   const [error, setError] = useState(null);
   const [soundOn, setSoundOn] = useState(false);
   const [soundError, setSoundError] = useState(null);
+  const [lyriaAudioUrl, setLyriaAudioUrl] = useState(null);
+  const [musicLoading, setMusicLoading] = useState(false);
+  /** @type {'lyria' | 'synth' | null} */
+  const [musicMode, setMusicMode] = useState(null);
   const soundEngineRef = useRef(null);
+  const motionBridgeRef = useRef(null);
+  if (!motionBridgeRef.current) {
+    motionBridgeRef.current = new AudioMotionBridge();
+  }
   const [apiStatus, setApiStatus] = useState(null);
 
   useEffect(() => {
@@ -82,7 +91,10 @@ export default function SensoryWorkbench() {
     setVisualSignature(null);
     setSoundOn(false);
     setSoundError(null);
+    setLyriaAudioUrl(null);
+    setMusicMode(null);
     soundEngineRef.current?.stop();
+    motionBridgeRef.current?.clear();
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -103,7 +115,10 @@ export default function SensoryWorkbench() {
     setAnalysis(null);
     setSoundOn(false);
     setSoundError(null);
+    setLyriaAudioUrl(null);
+    setMusicMode(null);
     soundEngineRef.current?.stop();
+    motionBridgeRef.current?.clear();
     setLoading(true);
 
     try {
@@ -206,6 +221,18 @@ export default function SensoryWorkbench() {
     return EMPTY_ANALYSIS.paletteHex.slice(0, 4);
   }, [displayPalette]);
 
+  const playSynthFallback = async () => {
+    soundEngineRef.current?.stop();
+    const engine = new AmbientSoundEngine(analysis.music);
+    await engine.play();
+    soundEngineRef.current = engine;
+    if (engine.analyser) {
+      motionBridgeRef.current?.bindAnalyser(engine.analyser);
+    }
+    setMusicMode("synth");
+    setSoundOn(true);
+  };
+
   const toggleSoundscape = async () => {
     if (!analysis?.music) {
       return;
@@ -215,14 +242,62 @@ export default function SensoryWorkbench() {
       soundEngineRef.current?.stop();
       soundEngineRef.current = null;
       setSoundOn(false);
+      setMusicMode(null);
+      motionBridgeRef.current?.clear();
       return;
     }
+
+    await ensureAudioRunning().catch(() => {});
+
+    if (apiStatus?.lyriaReady) {
+      setMusicLoading(true);
+      try {
+        let url = lyriaAudioUrl;
+        if (!url) {
+          const visionUrl = previewUrl
+            ? await compressImageForVision(previewUrl)
+            : null;
+          const result = await apiFetch("/api/sensory/music", {
+            method: "POST",
+            body: JSON.stringify({
+              analysis,
+              imageDataUrl: visionUrl,
+            }),
+          });
+          if (typeof result?.dataUrl !== "string") {
+            throw new Error("Lyria 응답에 오디오가 없습니다.");
+          }
+          url = result.dataUrl;
+          setLyriaAudioUrl(url);
+        }
+        soundEngineRef.current?.stop();
+        soundEngineRef.current = null;
+        setMusicMode("lyria");
+        setSoundOn(true);
+      } catch (e) {
+        const lyriaReason =
+          e instanceof Error ? e.message : "Lyria 생성에 실패했습니다.";
+        try {
+          await playSynthFallback();
+          setSoundError(
+            `${lyriaReason} — Web Audio 앰비언트로 대체 재생 중입니다.`
+          );
+        } catch (fallbackErr) {
+          setSoundError(
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : "사운드 재생에 실패했습니다."
+          );
+          setSoundOn(false);
+        }
+      } finally {
+        setMusicLoading(false);
+      }
+      return;
+    }
+
     try {
-      soundEngineRef.current?.stop();
-      const engine = new AmbientSoundEngine(analysis.music);
-      await engine.play();
-      soundEngineRef.current = engine;
-      setSoundOn(true);
+      await playSynthFallback();
     } catch (e) {
       setSoundError(
         e instanceof Error ? e.message : "사운드 재생에 실패했습니다."
@@ -356,6 +431,7 @@ export default function SensoryWorkbench() {
                   energy={analysis?.music?.energy ?? 0.35}
                   visualSignature={visualSignature}
                   backgroundImageUrl={previewUrl}
+                  motionBridgeRef={motionBridgeRef}
                 />
                 <div className={styles.glOverlay}>
                   <span className={styles.modalityBadge}>
@@ -426,13 +502,22 @@ export default function SensoryWorkbench() {
                   type="button"
                   className={styles.soundBtn}
                   onClick={toggleSoundscape}
-                  disabled={!analysis}
+                  disabled={!analysis || musicLoading}
                 >
-                  {soundOn ? "사운드스케이프 정지" : "사운드스케이프 재생"}
+                  {musicLoading
+                    ? "Lyria로 곡 생성 중… (30초~1분)"
+                    : soundOn
+                      ? "사운드스케이프 정지"
+                      : "사운드스케이프 재생"}
                 </button>
-                {soundOn && (
+                {soundOn && musicMode === "lyria" && (
                   <p className={styles.audioPlaying}>
-                    재생 중 — 분석 tempo/energy 기반 앰비언트 (피아노·AI 곡 아님)
+                    재생 중 — Lyria 앰비언트 · WebGL이 음량·저음에 맞춰 움직입니다
+                  </p>
+                )}
+                {soundOn && musicMode === "synth" && (
+                  <p className={styles.audioPlaying}>
+                    재생 중 — Web Audio 앰비언트 · WebGL 오디오 리액티브
                   </p>
                 )}
                 {soundError && (
@@ -442,13 +527,15 @@ export default function SensoryWorkbench() {
                   <AmbientSoundscape
                     music={analysis.music}
                     active={soundOn}
-                    audioUrl={null}
+                    audioUrl={musicMode === "lyria" ? lyriaAudioUrl : null}
                     engineRef={soundEngineRef}
+                    motionBridgeRef={motionBridgeRef}
                   />
                 )}
                 <p className={styles.hint}>
-                  「사운드스케이프 재생」 클릭 · 시스템/탭 볼륨 확인. 앰비언트
-                  톤(220Hz대)이며 AI 곡은 아닙니다.
+                  {apiStatus?.lyriaReady
+                    ? "GEMINI 키 연결됨 — 재생 시 Lyria가 이미지·분석 기반 앰비언트 MP3를 생성합니다."
+                    : "Lyria AI 곡은 .env에 GEMINI_API_KEY 추가 후 dev 서버 재시작. 없으면 Web Audio만 사용."}
                 </p>
               </article>
 
