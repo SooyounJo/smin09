@@ -59,6 +59,8 @@ export default function SensoryWorkbench() {
   const [musicLoading, setMusicLoading] = useState(false);
   /** @type {'lyria' | 'synth' | null} */
   const [musicMode, setMusicMode] = useState(null);
+  /** Generate마다 새 Lyria/합성 시그니처 */
+  const [musicVarietySeed, setMusicVarietySeed] = useState("");
   const soundEngineRef = useRef(null);
   const motionBridgeRef = useRef(null);
   if (!motionBridgeRef.current) {
@@ -93,6 +95,7 @@ export default function SensoryWorkbench() {
     setSoundError(null);
     setLyriaAudioUrl(null);
     setMusicMode(null);
+    setMusicVarietySeed("");
     soundEngineRef.current?.stop();
     motionBridgeRef.current?.clear();
 
@@ -117,11 +120,14 @@ export default function SensoryWorkbench() {
     setSoundError(null);
     setLyriaAudioUrl(null);
     setMusicMode(null);
+    setMusicVarietySeed("");
     soundEngineRef.current?.stop();
     motionBridgeRef.current?.clear();
     setLoading(true);
 
     try {
+      const varietySeed = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      setMusicVarietySeed(varietySeed);
       await ensureAudioRunning().catch(() => {});
       const visionUrl = await compressImageForVision(previewUrl);
       const colors = await extractDominantColors(visionUrl, 5);
@@ -223,7 +229,7 @@ export default function SensoryWorkbench() {
 
   const playSynthFallback = async () => {
     soundEngineRef.current?.stop();
-    const engine = new AmbientSoundEngine(analysis.music);
+    const engine = new AmbientSoundEngine(analysis.music, musicVarietySeed);
     await engine.play();
     soundEngineRef.current = engine;
     if (engine.analyser) {
@@ -262,6 +268,7 @@ export default function SensoryWorkbench() {
             body: JSON.stringify({
               analysis,
               imageDataUrl: visionUrl,
+              varietySeed: musicVarietySeed,
             }),
           });
           if (typeof result?.dataUrl !== "string") {

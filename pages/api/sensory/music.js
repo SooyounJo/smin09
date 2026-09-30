@@ -1,6 +1,7 @@
 import { buildLyriaPrompt } from "@/lib/sensory/buildMusicPrompt";
 import { hasGeminiKey } from "@/lib/sensory/env";
 import { generateLyriaMusic } from "@/lib/sensory/providers/lyriaMusic";
+import { resolveLyriaModel } from "@/lib/sensory/resolveLyriaModel";
 
 export const config = {
   api: {
@@ -9,6 +10,7 @@ export const config = {
     },
     responseLimit: false,
   },
+  maxDuration: 300,
 };
 
 export default async function handler(req, res) {
@@ -24,17 +26,26 @@ export default async function handler(req, res) {
     });
   }
 
-  const { analysis, imageDataUrl } = req.body || {};
+  const { analysis, imageDataUrl, varietySeed } = req.body || {};
   if (!analysis || typeof analysis !== "object") {
     return res.status(400).json({ error: "analysis object is required" });
   }
 
-  const prompt = buildLyriaPrompt(analysis);
+  const hasImage = typeof imageDataUrl === "string" && imageDataUrl.length > 0;
+  const lyriaModel = resolveLyriaModel({ hasImage });
+  const seed =
+    typeof varietySeed === "string" && varietySeed.length > 0
+      ? varietySeed
+      : "";
+  const prompt = buildLyriaPrompt(analysis, {
+    model: lyriaModel,
+    varietySeed: seed,
+  });
 
   try {
     const result = await generateLyriaMusic({
       prompt,
-      imageDataUrl: typeof imageDataUrl === "string" ? imageDataUrl : null,
+      imageDataUrl: hasImage ? imageDataUrl : null,
     });
 
     if (!result) {

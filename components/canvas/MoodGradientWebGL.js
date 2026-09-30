@@ -66,7 +66,7 @@ void main() {
 
   vec2 warpVec = vec2(
     sin(uv.y * u_ripple + t + u_seed),
-    cos(uv.x * u_ripple * 0.85 - t * 0.45 + u_seed * 0.6)
+    cos(uv.x * u_ripple * 0.85 - t * 0.58 + u_seed * 0.6)
   ) * u_domainWarp;
 
   if (kind >= 3.0 && kind < 5.0) {
@@ -75,6 +75,15 @@ void main() {
 
   vec2 wuv = uv + warpVec;
   vec2 pr = rotate(wuv - 0.5, u_angle);
+
+  if (u_shapeMode < 0.5) {
+    vec2 ambientFlow = vec2(
+      sin(uv.y * u_ripple * 0.75 + t * 0.95 + u_seed),
+      cos(uv.x * u_ripple * 0.65 - t * 0.88 + u_seed2 * 0.5)
+    ) * (u_domainWarp * 1.28 + u_warp * 0.48);
+    wuv += ambientFlow;
+    pr = rotate(wuv - 0.5, u_angle);
+  }
 
   if (u_shapeMode > 0.5) {
     if (kind < 2.0) {
@@ -261,8 +270,8 @@ void main() {
       c1 += vec2(0.0, -0.18);
     }
 
-    fp = 1.0 - smoothstep(0.1, 0.8 + wave * 0.1, length(pr - c0));
-    fs = smoothstep(0.18, 0.62, dot(pr, normalize(c1)) + 0.35 + wave * 0.22);
+    fp = 1.0 - smoothstep(0.1, 0.8 + wave * 0.2, length(pr - c0));
+    fs = smoothstep(0.18, 0.62, dot(pr, normalize(c1)) + 0.35 + wave * 0.34);
     fs *= (1.0 - fp * 0.72);
 
     fa = pow(
@@ -516,7 +525,9 @@ export default function MoodGradientWebGL({
       const level = audioOn ? snap.level : 0;
       const bass = audioOn ? snap.bass : 0;
 
-      timeAccum += dt * (0.42 + bass * 0.12);
+      const imageAmbient = shapeMode !== "text";
+      const timeRate = imageAmbient ? 0.72 : 0.52;
+      timeAccum += dt * (timeRate + bass * (imageAmbient ? 0.22 : 0.14));
 
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -529,11 +540,13 @@ export default function MoodGradientWebGL({
       gl.uniform1f(uniforms.driftAmp, sig.driftAmp ?? 0.05);
       gl.uniform1f(uniforms.waveX, sig.waveX);
       gl.uniform1f(uniforms.waveY, sig.waveY);
-      gl.uniform1f(uniforms.warp, sig.warp * (1 + level * 0.18));
-      gl.uniform1f(uniforms.ripple, sig.ripple + bass * 0.35);
+      const flowCap = imageAmbient ? 0.48 : 0.32;
+      const flowAudio = imageAmbient ? 0.18 : 0.12;
+      gl.uniform1f(uniforms.warp, sig.warp * (1 + level * (imageAmbient ? 0.28 : 0.18)));
+      gl.uniform1f(uniforms.ripple, sig.ripple + bass * (imageAmbient ? 0.5 : 0.35));
       gl.uniform1f(
         uniforms.flow,
-        Math.min(0.26, sig.flow * (1 + level * 0.08))
+        Math.min(flowCap, sig.flow * (1 + level * flowAudio))
       );
       gl.uniform1f(uniforms.style, sig.style);
       gl.uniform1f(uniforms.layout, sig.layout ?? 0);
@@ -541,7 +554,8 @@ export default function MoodGradientWebGL({
       gl.uniform1f(uniforms.accentPower, sig.accentPower ?? 6);
       gl.uniform1f(
         uniforms.domainWarp,
-        (sig.domainWarp ?? 0.15) * (1 + level * 0.15)
+        (sig.domainWarp ?? 0.15) *
+          (1 + level * (imageAmbient ? 0.25 : 0.15))
       );
       gl.uniform1f(uniforms.focusX, sig.focusX ?? 0);
       gl.uniform1f(uniforms.focusY, sig.focusY ?? 0);

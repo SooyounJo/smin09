@@ -1,4 +1,5 @@
 import { resolveVisionProvider } from "@/lib/sensory/resolveVisionProvider";
+import { resolveLyriaModel } from "@/lib/sensory/resolveLyriaModel";
 import { hasGeminiKey, hasOpenAIKey } from "@/lib/sensory/env";
 
 export default function handler(req, res) {
@@ -15,7 +16,9 @@ export default function handler(req, res) {
     openaiKeySet: hasOpenAIKey(),
     geminiKeySet: hasGeminiKey(),
     lyriaReady: hasGeminiKey(),
-    lyriaModel: process.env.LYRIA_MODEL || "lyria-3-clip-preview",
+    lyriaModel: resolveLyriaModel({ hasImage: false }),
+    lyriaModelWithImage: resolveLyriaModel({ hasImage: true }),
+    lyriaModels: ["lyria-3-clip-preview", "lyria-3.5"],
     model:
       provider === "openai"
         ? process.env.OPENAI_VISION_MODEL || "gpt-4o-mini"

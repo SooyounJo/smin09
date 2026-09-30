@@ -37,6 +37,7 @@ export default function TextSensoryWorkbench() {
   const [lyriaAudioUrl, setLyriaAudioUrl] = useState(null);
   const [musicLoading, setMusicLoading] = useState(false);
   const [musicMode, setMusicMode] = useState(null);
+  const [musicVarietySeed, setMusicVarietySeed] = useState("");
   const soundEngineRef = useRef(null);
   const motionBridgeRef = useRef(null);
   if (!motionBridgeRef.current) {
@@ -80,11 +81,14 @@ export default function TextSensoryWorkbench() {
     setSoundError(null);
     setLyriaAudioUrl(null);
     setMusicMode(null);
+    setMusicVarietySeed("");
     soundEngineRef.current?.stop();
     motionBridgeRef.current?.clear();
     setLoading(true);
 
     try {
+      const varietySeed = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      setMusicVarietySeed(varietySeed);
       const result = await apiFetch("/api/sensory/analyze-text", {
         method: "POST",
         body: JSON.stringify({ memoryText: trimmed }),
@@ -127,7 +131,7 @@ export default function TextSensoryWorkbench() {
 
   const playSynthFallback = async () => {
     soundEngineRef.current?.stop();
-    const engine = new AmbientSoundEngine(analysis.music);
+    const engine = new AmbientSoundEngine(analysis.music, musicVarietySeed);
     await engine.play();
     soundEngineRef.current = engine;
     if (engine.analyser) {
@@ -160,7 +164,11 @@ export default function TextSensoryWorkbench() {
         if (!url) {
           const result = await apiFetch("/api/sensory/music", {
             method: "POST",
-            body: JSON.stringify({ analysis, imageDataUrl: null }),
+            body: JSON.stringify({
+              analysis,
+              imageDataUrl: null,
+              varietySeed: musicVarietySeed,
+            }),
           });
           if (typeof result?.dataUrl !== "string") {
             throw new Error("Lyria 응답에 오디오가 없습니다.");
