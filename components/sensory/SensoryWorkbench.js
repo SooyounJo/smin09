@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AmbientSoundEngine } from "@/lib/sensory/ambientEngine";
 import { AudioMotionBridge } from "@/lib/sensory/audioMotionBridge";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api/client";
 import {
   boostPaletteSaturation,
@@ -15,6 +16,12 @@ import { extractDominantColors } from "@/lib/sensory/extractColors";
 import { extractImageComposition } from "@/lib/sensory/imageComposition";
 import { mergeMotionProfile } from "@/lib/sensory/visualMotion";
 import { EMPTY_ANALYSIS } from "@/lib/sensory/schema";
+import {
+  createArchiveId,
+  dataUrlToBlob,
+  saveArchiveEntry,
+  updateArchiveEntry,
+} from "@/lib/archive/archiveStore";
 import AmbientSoundscape from "@/components/sensory/AmbientSoundscape";
 import styles from "@/styles/pages/sensory.module.css";
 
@@ -61,6 +68,8 @@ export default function SensoryWorkbench() {
   const [musicMode, setMusicMode] = useState(null);
   /** Generate마다 새 Lyria/합성 시그니처 */
   const [musicVarietySeed, setMusicVarietySeed] = useState("");
+  const [archiveId, setArchiveId] = useState(null);
+  const [archiveNote, setArchiveNote] = useState(null);
   const soundEngineRef = useRef(null);
   const motionBridgeRef = useRef(null);
   if (!motionBridgeRef.current) {
@@ -96,6 +105,8 @@ export default function SensoryWorkbench() {
     setLyriaAudioUrl(null);
     setMusicMode(null);
     setMusicVarietySeed("");
+    setArchiveId(null);
+    setArchiveNote(null);
     soundEngineRef.current?.stop();
     motionBridgeRef.current?.clear();
 
@@ -121,6 +132,8 @@ export default function SensoryWorkbench() {
     setLyriaAudioUrl(null);
     setMusicMode(null);
     setMusicVarietySeed("");
+    setArchiveId(null);
+    setArchiveNote(null);
     soundEngineRef.current?.stop();
     motionBridgeRef.current?.clear();
     setLoading(true);
@@ -168,8 +181,37 @@ export default function SensoryWorkbench() {
         result?.visualComposition,
         result?.music
       );
-      setVisualSignature(deriveVisualSignature(vivid, energy, motion));
+      const signature = deriveVisualSignature(vivid, energy, motion);
+      const roles = golden.roles.map((role, i) => ({
+        ...role,
+        hex: vivid[i] || role.hex,
+      }));
+      setVisualSignature(signature);
       setAnalysis(result);
+
+      const id = createArchiveId();
+      saveArchiveEntry({
+        id,
+        createdAt: Date.now(),
+        source: "image",
+        title: result?.music?.mood || result?.memoryImpression?.slice(0, 40) || "이미지",
+        sourceText: null,
+        imageDataUrl: visionUrl,
+        paletteHex: vivid.slice(0, 4),
+        colorRoles: roles,
+        visualSignature: signature,
+        energy,
+        shapeMode: "image",
+        analysis: result,
+        musicVarietySeed: varietySeed,
+        audioBlob: null,
+        audioMimeType: null,
+      })
+        .then(() => {
+          setArchiveId(id);
+          setArchiveNote("아카이브에 저장됨");
+        })
+        .catch(() => setArchiveNote("아카이브 저장 실패 (브라우저 저장소 확인)"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "분석 실패");
     } finally {
@@ -276,6 +318,17 @@ export default function SensoryWorkbench() {
           }
           url = result.dataUrl;
           setLyriaAudioUrl(url);
+          if (archiveId) {
+            dataUrlToBlob(url)
+              .then((blob) =>
+                updateArchiveEntry(archiveId, {
+                  audioBlob: blob,
+                  audioMimeType: result.mimeType || blob.type || "audio/mpeg",
+                })
+              )
+              .then(() => setArchiveNote("아카이브에 저장됨 · 음원 포함"))
+              .catch(() => setArchiveNote("음원 아카이브 저장 실패"));
+          }
         }
         soundEngineRef.current?.stop();
         soundEngineRef.current = null;
@@ -395,6 +448,11 @@ export default function SensoryWorkbench() {
 
         {loading && <p className={styles.status}>Vision API 분석 중…</p>}
         {error && <p className={styles.error}>{error}</p>}
+        {archiveNote && (
+          <p className={styles.archiveNote}>
+            {archiveNote} · <Link href="/archive">아카이브 보기</Link>
+          </p>
+        )}
 
         {analysis && (
           <div className={styles.metaBlock}>

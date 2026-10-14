@@ -1,0 +1,439 @@
+.root {
+  --bg: #07060a;
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #f1ebf4;
+  --muted: #8e859c;
+  --accent: #ff8a3d;
+  position: relative;
+  max-width: 440px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  box-shadow: 0 0 0 100vmax #000;
+  color: var(--text);
+  color-scheme: dark;
+  font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  height: 52px;
+  padding: 0 8px;
+  background: rgba(7, 6, 10, 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.header h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.back {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.count {
+  justify-self: center;
+  min-width: 26px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 입력 */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 18px;
+}
+
+.imageInput {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 11;
+  border-radius: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background:
+    radial-gradient(circle at 50% 60%, rgba(255, 138, 61, 0.14), transparent 60%),
+    #0e0c12;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.imageInput span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.imageInput b {
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--accent);
+}
+
+.imageInput img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageInput input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field textarea,
+.field input,
+.field select {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  background: #0e0c12;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  resize: none;
+}
+
+.field textarea:focus,
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: rgba(255, 138, 61, 0.6);
+}
+
+.fieldRow {
+  display: flex;
+  gap: 10px;
+}
+
+.error {
+  margin: 0;
+  color: #ff8f7a;
+  font-size: 13px;
+}
+
+.primary {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  color: #1a0d05;
+  background: linear-gradient(180deg, #ffb070, #ff7a2e);
+  cursor: pointer;
+}
+
+/* 하단 고정 버튼 */
+
+.bottomBar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 600;
+  width: min(440px, 100%);
+  transform: translateX(-50%);
+  padding: 12px 18px calc(16px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, var(--bg) 40%);
+}
+
+.bottomButton {
+  display: block;
+  padding: 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(20, 17, 26, 0.92);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* 지도 */
+
+.mapRoot {
+  height: 100dvh;
+  padding-bottom: 0;
+}
+
+.years {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.years button {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.years button[aria-pressed="true"] {
+  color: #1a0d05;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.mapArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  background: #0b0a0f;
+}
+
+.darkTiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.9) saturate(0.4);
+}
+
+.map :global(.leaflet-control-attribution) {
+  background: rgba(7, 6, 10, 0.7);
+  color: #8e859c;
+}
+
+.map :global(.leaflet-control-attribution a) {
+  color: #b9b0c6;
+}
+
+.pinWrap {
+  background: none;
+  border: 0;
+}
+
+.pin {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: #ffd2a6;
+  box-shadow:
+    0 0 0 2px rgba(255, 138, 61, 0.9),
+    0 0 14px 4px rgba(255, 110, 40, 0.7);
+}
+
+.pinMine {
+  background: #bfefff;
+  box-shadow:
+    0 0 0 2px rgba(110, 200, 240, 0.9),
+    0 0 14px 4px rgba(90, 180, 240, 0.7);
+}
+
+.pinLabel {
+  position: absolute;
+  left: 22px;
+  top: 0;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 18px;
+  color: #f1ebf4;
+  text-shadow: 0 0 4px #000, 0 0 2px #000;
+  font-variant-numeric: tabular-nums;
+}
+
+.popupShell :global(.leaflet-popup-content-wrapper) {
+  background: #15121b;
+  color: #f1ebf4;
+  border-radius: 14px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.popupShell :global(.leaflet-popup-content) {
+  margin: 0;
+}
+
+.popupShell :global(.leaflet-popup-tip) {
+  background: #15121b;
+}
+
+.popupShell :global(.leaflet-popup-close-button) {
+  color: #f1ebf4 !important;
+}
+
+.popup img {
+  display: block;
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+}
+
+.popupMeta {
+  margin: 10px 12px 2px !important;
+  font-size: 11px;
+  color: #ffb070;
+}
+
+.popupText {
+  margin: 0 12px 12px !important;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* 라이브러리 */
+
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 18px 16px 24px;
+}
+
+.group h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.group h2 small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.boxes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+}
+
+.blob {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #0d0b11;
+  isolation: isolate;
+}
+
+.blob::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  background: var(--img, none) center / cover;
+  filter: blur(14px) saturate(1.3) brightness(0.55);
+}
+
+/* 빛 모임 단계의 둥근 사각형 + 주황 테두리 빛 */
+.blobCore {
+  width: 54%;
+  aspect-ratio: 1;
+  border-radius: 32%;
+  background:
+    radial-gradient(circle at 35% 70%, rgba(255, 120, 40, 0.35), transparent 60%),
+    rgba(18, 10, 14, 0.85);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 220, 160, 0.7),
+    inset 0 0 14px rgba(255, 140, 50, 0.6),
+    0 0 0 1px rgba(255, 150, 70, 0.6),
+    0 0 16px 4px rgba(255, 120, 40, 0.65),
+    0 0 40px 14px rgba(220, 60, 20, 0.35);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.box:nth-child(2n) .blobCore {
+  animation-delay: -1.6s;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(-3deg);
+  }
+  50% {
+    transform: scale(1.06) rotate(2deg);
+  }
+}
+
+.box:active .blob {
+  transform: scale(0.97);
+}
+
+.boxMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.boxMeta b {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boxMeta small {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

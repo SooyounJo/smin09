@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P2.5 32×64 세로형 LED · 패턴 비교</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#000; --ink:#efe9f6; --muted:#8e859c; --line:#2a2530; --accent:#d64fd8;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#000; } }
+:root[data-theme="dark"], :root[data-theme="light"]{ --bg:#000; }
+html{background:#000; scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  font-size:15px; line-height:1.55}
+main{max-width:1180px; margin:0 auto; padding:24px 20px 48px}
+h1{font-size:clamp(20px,3vw,26px); font-weight:700; margin:0 0 14px}
+
+.modes{display:inline-flex; padding:4px; gap:4px; border:1px solid var(--line); border-radius:999px; margin-bottom:22px; flex-wrap:wrap}
+.modes button{font:inherit; font-size:15px; font-weight:500; padding:8px 18px; border-radius:999px;
+  border:0; background:transparent; color:var(--muted); cursor:pointer}
+.modes button[aria-pressed="true"]{color:#000}
+.modes button[data-mode="sunset"][aria-pressed="true"]{background:linear-gradient(90deg,#f4a6f0,#f07a3c)}
+.modes button[data-mode="streaks"][aria-pressed="true"]{background:linear-gradient(90deg,#b9b7e0,#e3dca8)}
+.modes button[data-mode="mosaic"][aria-pressed="true"]{background:linear-gradient(90deg,#f4c233,#e8381e)}
+.modes button[data-mode="fans"][aria-pressed="true"]{background:linear-gradient(90deg,#4a6cff,#fff6e0,#ff6a3a)}
+.modes button[data-mode="moire"][aria-pressed="true"]{background:repeating-linear-gradient(90deg,#c9cdfa 0 3px,#ffd6bf 3px 6px)}
+.modes button[data-mode="aura1"][aria-pressed="true"]{background:linear-gradient(90deg,#aecbfa,#ff8c1a,#ff8ef2,#33287a)}
+.modes button[data-mode="aura2"][aria-pressed="true"]{background:radial-gradient(ellipse at center,#9a3cff 0 35%,#e46fc8 60%,#ffb01a 90%)}
+.modes button[data-mode="aura3"][aria-pressed="true"]{background:linear-gradient(90deg,#d6b3ef,#ffa320,#e8401a,#200)}
+.modes button[data-mode="venn"][aria-pressed="true"]{background:linear-gradient(90deg,#ff3a52,#3aff74,#4d66ff)}
+.modes button[data-mode="bundles"][aria-pressed="true"]{background:repeating-linear-gradient(60deg,#ff7333 0 3px,#000 3px 5px,#40bfff 5px 8px,#000 8px 10px)}
+.modes button[data-mode="xor"][aria-pressed="true"]{background:radial-gradient(circle,#000 0 25%,#4db8ff 26% 45%,#000 46% 60%,#ffcc4d 61% 80%,#000 81%)}
+.modes button[data-mode="frames"][aria-pressed="true"]{background:linear-gradient(135deg,#ff8c33,#fff,#4da6ff)}
+.modes button[data-mode="all"][aria-pressed="true"]{background:var(--ink)}
+
+.stage{display:grid; grid-template-columns:auto minmax(0,1fr); gap:40px; align-items:start; margin-bottom:28px}
+.left{display:flex; flex-direction:column; align-items:center}
+.panels{display:flex; gap:16px}
+figure{margin:0}
+figcaption{color:var(--muted); font-size:13.5px; margin-top:8px; text-align:center}
+.module{background:#000; border-radius:6px; padding:12px; position:relative;
+  box-shadow:0 0 0 1px #1d1a22, 0 18px 60px -24px rgba(150,50,190,.5); width:320px}
+body.multi .stage{grid-template-columns:1fr}
+body.multi .panels{flex-wrap:wrap; justify-content:center}
+body.multi .module{width:calc((min(100vw, 1180px) - 40px - 48px) / 4); padding:8px}
+body.multi .side{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0 32px}
+body.multi .side .spec, body.multi .side .row{grid-column:1 / -1}
+.seg{display:flex; flex-direction:column; gap:6px; margin-top:4px}
+.seg label{display:flex; gap:8px; align-items:center; font-size:14px; cursor:pointer}
+.seg input{accent-color:var(--accent); width:16px; height:16px; margin:0}
+.hint{color:var(--muted); font-size:13px; margin:2px 0 0}
+.module canvas{display:block; width:100%; aspect-ratio:1/2; border-radius:2px}
+.screws span{position:absolute; width:6px; height:6px; border-radius:50%; background:#1c1a20}
+.screws span:nth-child(1){left:3px;top:3px}.screws span:nth-child(2){right:3px;top:3px}
+.screws span:nth-child(3){left:3px;bottom:3px}.screws span:nth-child(4){right:3px;bottom:3px}
+[hidden]{display:none !important}
+.replay{font:inherit; font-size:15px; font-weight:500; margin-top:22px; padding:10px 22px; border-radius:999px;
+  border:1px solid var(--line); background:transparent; color:var(--ink); cursor:pointer}
+.replay:hover{border-color:var(--ink)}
+
+.spec{display:flex; flex-wrap:wrap; gap:4px 20px; color:var(--muted); font-size:13.5px; margin-bottom:18px}
+.spec b{color:var(--ink); font-weight:500}
+.row{display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap}
+.row button{font:inherit; font-size:14px; padding:7px 14px; border-radius:999px;
+  border:1px solid var(--line); background:transparent; color:var(--ink); cursor:pointer}
+.row button[aria-pressed="true"]{background:var(--ink); color:#000; border-color:var(--ink)}
+fieldset{border:0; padding:0; margin:0 0 20px}
+legend{font-weight:500; margin-bottom:8px; padding:0}
+.ctl{margin-bottom:10px}
+.ctl label{display:flex; justify-content:space-between; font-size:14px; margin-bottom:2px}
+.ctl output{color:var(--muted); font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--accent)}
+.replay:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+details{border-top:1px solid var(--line); padding-top:14px; margin-top:10px}
+summary{cursor:pointer; font-weight:500}
+.codewrap{overflow-x:auto; margin-top:12px; border:1px solid var(--line); border-radius:6px}
+pre{margin:0; padding:16px; color:#e6dcf2; font-size:12.5px; line-height:1.6; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.err{color:#e0533a}
+
+@media (max-width:1000px){
+  .stage{grid-template-columns:1fr; gap:24px}
+}
+@media (max-width:760px){
+  .module{width:min(300px,72vw)}
+  body.multi .panels{gap:8px}
+  body.multi .module{width:calc((100vw - 56px) / 3); padding:5px}
+  body.multi .side{display:block}
+  body.multi figcaption{font-size:12px}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>세로형 32×64 LED 패턴 비교</h1>
+
+  <div class="modes" role="group" aria-label="패턴 선택">
+    <button data-mode="sunset" aria-pressed="false">노을 줄무늬</button>
+    <button data-mode="streaks" aria-pressed="false">파스텔 세로줄</button>
+    <button data-mode="mosaic" aria-pressed="false">글리프 모자이크</button>
+    <button data-mode="fans" aria-pressed="false">회전 부채꼴</button>
+    <button data-mode="moire" aria-pressed="false">무아레</button>
+    <button data-mode="aura1" aria-pressed="false">블러 오로라</button>
+    <button data-mode="aura2" aria-pressed="false">오라 캡슐</button>
+    <button data-mode="aura3" aria-pressed="false">불꽃 곡선</button>
+    <button data-mode="venn" aria-pressed="false">겹친 원</button>
+    <button data-mode="bundles" aria-pressed="false">선다발 교차</button>
+    <button data-mode="xor" aria-pressed="false">반전 아크</button>
+    <button data-mode="frames" aria-pressed="false">회전 프레임</button>
+    <button data-mode="all" aria-pressed="false">나란히 보기</button>
+  </div>
+
+  <div class="stage">
+    <div class="left">
+      <div class="panels">
+        <figure data-pat="sunset">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="노을 줄무늬 LED 시뮬레이션"></canvas></div>
+          <figcaption>노을 줄무늬</figcaption>
+        </figure>
+        <figure data-pat="streaks">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="파스텔 세로줄 LED 시뮬레이션"></canvas></div>
+          <figcaption>파스텔 세로줄</figcaption>
+        </figure>
+        <figure data-pat="mosaic">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="글리프 모자이크 LED 시뮬레이션"></canvas></div>
+          <figcaption>글리프 모자이크</figcaption>
+        </figure>
+        <figure data-pat="fans">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="회전 부채꼴 LED 시뮬레이션"></canvas></div>
+          <figcaption>회전 부채꼴</figcaption>
+        </figure>
+        <figure data-pat="moire">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="무아레 LED 시뮬레이션"></canvas></div>
+          <figcaption>무아레</figcaption>
+        </figure>
+        <figure data-pat="aura1">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="블러 오로라 LED 시뮬레이션"></canvas></div>
+          <figcaption>블러 오로라</figcaption>
+        </figure>
+        <figure data-pat="aura2">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="오라 캡슐 LED 시뮬레이션"></canvas></div>
+          <figcaption>오라 캡슐</figcaption>
+        </figure>
+        <figure data-pat="aura3">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="불꽃 곡선 LED 시뮬레이션"></canvas></div>
+          <figcaption>불꽃 곡선</figcaption>
+        </figure>
+        <figure data-pat="venn">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="겹친 원 LED 시뮬레이션"></canvas></div>
+          <figcaption>겹친 원</figcaption>
+        </figure>
+        <figure data-pat="bundles">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="선다발 교차 LED 시뮬레이션"></canvas></div>
+          <figcaption>선다발 교차</figcaption>
+        </figure>
+        <figure data-pat="xor">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="반전 아크 LED 시뮬레이션"></canvas></div>
+          <figcaption>반전 아크</figcaption>
+        </figure>
+        <figure data-pat="frames">
+          <div class="module"><div class="screws" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <canvas aria-label="회전 프레임 LED 시뮬레이션"></canvas></div>
+          <figcaption>회전 프레임</figcaption>
+        </figure>
+      </div>
+      <button id="replay" class="replay">↻ 다시 시작</button>
+    </div>
+
+    <div class="side">
+      <div class="spec">
+        <span>피치 <b>2.5 mm</b></span>
+        <span>해상도 <b>32 × 64</b></span>
+        <span>모듈 <b>80 × 160 mm</b> 세로 설치</span>
+        <span id="fps">— fps</span>
+      </div>
+      <div class="row" role="group" aria-label="보기 방식">
+        <button id="vLed" aria-pressed="true">LED 도트</button>
+        <button id="vRaw" aria-pressed="false">쉐이더 원본</button>
+        <button id="pause" aria-pressed="false">일시정지</button>
+      </div>
+
+      <fieldset>
+        <legend>공통</legend>
+        <div class="ctl"><label for="speed">속도 <output></output></label><input id="speed" type="range" min="0" max="3" step="0.05" value="1"></div>
+        <div class="ctl"><label for="dot">도트 크기 <output></output></label><input id="dot" type="range" min="0.2" max="0.5" step="0.01" value="0.4"></div>
+        <div class="ctl"><label for="glow">번짐 <output></output></label><input id="glow" type="range" min="0" max="1" step="0.01" value="0.45"></div>
+        <div class="ctl"><label for="bright">밝기 <output></output></label><input id="bright" type="range" min="0.2" max="1.5" step="0.01" value="0.95"></div>
+      </fieldset>
+      <fieldset data-pat="sunset">
+        <legend>노을 줄무늬</legend>
+        <div class="ctl"><label for="sunsetA">기둥 개수 <output></output></label><input id="sunsetA" type="range" min="1" max="8" step="1" value="4"></div>
+        <div class="ctl"><label for="sunsetB">줄무늬 밀도 <output></output></label><input id="sunsetB" type="range" min="0.3" max="3" step="0.05" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="streaks">
+        <legend>파스텔 세로줄</legend>
+        <div class="ctl"><label for="streaksA">세로줄 밀도 <output></output></label><input id="streaksA" type="range" min="6" max="40" step="1" value="18"></div>
+        <div class="ctl"><label for="streaksB">색수차 <output></output></label><input id="streaksB" type="range" min="0" max="3" step="0.05" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="mosaic">
+        <legend>글리프 모자이크</legend>
+        <div class="ctl"><label for="mosaicA">셀 크기 <output></output></label><input id="mosaicA" type="range" min="1" max="4" step="1" value="2"></div>
+        <div class="ctl"><label for="mosaicB">무늬 크기 <output></output></label><input id="mosaicB" type="range" min="0.5" max="2.5" step="0.05" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="fans">
+        <legend>회전 부채꼴</legend>
+        <div class="ctl"><label for="fansA">점 간격 <output></output></label><input id="fansA" type="range" min="1.2" max="4" step="0.05" value="2"></div>
+        <div class="ctl"><label for="fansB">부채꼴 각도 <output></output></label><input id="fansB" type="range" min="0.5" max="1.6" step="0.01" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="moire">
+        <legend>무아레</legend>
+        <div class="ctl"><label for="moireA">줄 간격 <output></output></label><input id="moireA" type="range" min="0.8" max="4" step="0.01" value="1.3"></div>
+        <div class="ctl"><label for="moireB">어긋남 <output></output></label><input id="moireB" type="range" min="0" max="15" step="0.1" value="5"></div>
+        <div class="seg" role="radiogroup" aria-label="겹침 방식">
+          <label><input type="radio" name="moireC" value="0" checked> 세로줄 × 세로줄</label>
+          <label><input type="radio" name="moireC" value="1"> 동심원 × 동심원</label>
+          <label><input type="radio" name="moireC" value="2"> 세로줄 × LED 격자</label>
+        </div>
+        <p class="hint">줄 간격을 1~1.5 LED로 좁힐수록 줄 자체보다 겹침 띠가 크게 보입니다.</p>
+      </fieldset>
+      <fieldset data-pat="aura1">
+        <legend>블러 오로라</legend>
+        <div class="ctl"><label for="aura1A">흐름 세기 <output></output></label><input id="aura1A" type="range" min="0" max="2" step="0.01" value="1"></div>
+        <div class="ctl"><label for="aura1B">무늬 크기 <output></output></label><input id="aura1B" type="range" min="0.5" max="2" step="0.01" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="aura2">
+        <legend>오라 캡슐</legend>
+        <div class="ctl"><label for="aura2A">일렁임 <output></output></label><input id="aura2A" type="range" min="0" max="2" step="0.01" value="1"></div>
+        <div class="ctl"><label for="aura2B">부드러움 <output></output></label><input id="aura2B" type="range" min="0.5" max="2" step="0.01" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="aura3">
+        <legend>불꽃 곡선</legend>
+        <div class="ctl"><label for="aura3A">웨이브 <output></output></label><input id="aura3A" type="range" min="0" max="2" step="0.01" value="1"></div>
+        <div class="ctl"><label for="aura3B">부드러움 <output></output></label><input id="aura3B" type="range" min="0.5" max="2" step="0.01" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="venn">
+        <legend>겹친 원</legend>
+        <div class="ctl"><label for="vennA">링 간격 <output></output></label><input id="vennA" type="range" min="1.2" max="4" step="0.05" value="2"></div>
+        <div class="ctl"><label for="vennB">원 크기 <output></output></label><input id="vennB" type="range" min="0.6" max="1.5" step="0.01" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="bundles">
+        <legend>선다발 교차</legend>
+        <div class="ctl"><label for="bundlesA">선 간격 <output></output></label><input id="bundlesA" type="range" min="1.2" max="4" step="0.05" value="2"></div>
+        <div class="ctl"><label for="bundlesB">다발 폭 <output></output></label><input id="bundlesB" type="range" min="0.5" max="1.6" step="0.01" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="xor">
+        <legend>반전 아크</legend>
+        <div class="ctl"><label for="xorA">고리 두께 <output></output></label><input id="xorA" type="range" min="0.4" max="2" step="0.01" value="1"></div>
+        <div class="ctl"><label for="xorB">크기 <output></output></label><input id="xorB" type="range" min="0.6" max="1.4" step="0.01" value="1"></div>
+      </fieldset>
+      <fieldset data-pat="frames">
+        <legend>회전 프레임</legend>
+        <div class="ctl"><label for="framesA">선 굵기 <output></output></label><input id="framesA" type="range" min="0.6" max="2" step="0.01" value="1"></div>
+        <div class="ctl"><label for="framesB">크기 <output></output></label><input id="framesB" type="range" min="0.6" max="1.5" step="0.01" value="1"></div>
+      </fieldset>
+    </div>
+  </div>
+
+  <details>
+    <summary>노을 줄무늬 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="sunset"></pre></div>
+  </details>
+  <details>
+    <summary>파스텔 세로줄 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="streaks"></pre></div>
+  </details>
+  <details>
+    <summary>글리프 모자이크 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="mosaic"></pre></div>
+  </details>
+  <details>
+    <summary>회전 부채꼴 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="fans"></pre></div>
+  </details>
+  <details>
+    <summary>무아레 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="moire"></pre></div>
+  </details>
+  <details>
+    <summary>블러 오로라 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="aura1"></pre></div>
+  </details>
+  <details>
+    <summary>오라 캡슐 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="aura2"></pre></div>
+  </details>
+  <details>
+    <summary>불꽃 곡선 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="aura3"></pre></div>
+  </details>
+  <details>
+    <summary>겹친 원 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="venn"></pre></div>
+  </details>
+  <details>
+    <summary>선다발 교차 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="bundles"></pre></div>
+  </details>
+  <details>
+    <summary>반전 아크 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="xor"></pre></div>
+  </details>
+  <details>
+    <summary>회전 프레임 쉐이더 코드</summary>
+    <div class="codewrap"><pre data-src="frames"></pre></div>
+  </details>
+</main>
+
+<script id="fs-sunset" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;     // 캔버스 픽셀 크기
+uniform float u_time;
+uniform float u_cols;    // 세로 기둥 개수
+uniform float u_band;    // 줄무늬 밀도
+uniform float u_dot;     // LED 반지름 (셀 대비, 0.5 = 꽉 참)
+uniform float u_glow;    // 도트 주변 번짐
+uniform float u_bright;
+uniform float u_led;     // 1 = LED 도트, 0 = 원본
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash(float n){ return fract(sin(n * 127.1) * 43758.5453); }
+float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+// 노을 팔레트 (순환): 핑크 → 마젠타 → 라벤더 → 피치 → 오렌지 → 레드 → 마룬 → 네이비 → 블루 → 바이올렛
+vec3 palette(float t){
+  vec3 c[10];
+  c[0]=vec3(0.96,0.66,0.95); c[1]=vec3(0.91,0.36,0.91);
+  c[2]=vec3(0.72,0.56,0.96); c[3]=vec3(0.98,0.64,0.58);
+  c[4]=vec3(0.95,0.45,0.20); c[5]=vec3(0.80,0.18,0.10);
+  c[6]=vec3(0.30,0.04,0.12); c[7]=vec3(0.07,0.03,0.16);
+  c[8]=vec3(0.30,0.24,0.90); c[9]=vec3(0.50,0.22,0.78);
+  t = fract(t) * 10.0;
+  float i = floor(t);
+  float f = smoothstep(0.15, 0.85, fract(t));   // 살짝 계단지게
+  vec3 a = c[0], b = c[1];
+  for (int k = 0; k < 10; k++){
+    if (float(k) == i){ a = c[k]; b = c[int(mod(float(k) + 1.0, 10.0))]; }
+  }
+  return mix(a, b, f);
+}
+
+// 한 픽셀(0~1 좌표)의 색: 세로 기둥마다 다른 속도/위상으로 줄무늬가 위로 흐름
+vec3 pattern(vec2 uv){
+  float col  = floor(uv.x * u_cols);
+  float h    = hash(col + 3.0);
+  float spd  = 0.10 + 0.08 * h;
+  float y    = 1.0 - uv.y;                       // 위에서 아래로 증가
+
+  float v = y * (2.2 * u_band)
+          - u_time * spd
+          + h * 4.0
+          + 0.12 * sin(u_time * 0.4 + col * 1.7)  // 기둥끼리 엇갈림
+          + 0.35 * y;                             // 아래쪽은 블루/퍼플로 치우침
+
+  // 행마다 아주 약간의 떨림 → 가는 줄무늬 질감
+  float row = floor(uv.y * GRID.y);
+  v += 0.018 * (hash2(vec2(row, col)) - 0.5);
+
+  vec3 c = palette(v);
+
+  // 가끔 반짝이는 흰 점
+  vec2 id = floor(uv * GRID);
+  float sp = hash2(id + floor(u_time * 6.0));
+  c = mix(c, vec3(1.0), step(0.9985, sp) * 0.8);
+  return c;
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 frag = gl_FragCoord.xy;
+  vec2 uv   = frag / u_res;
+
+  if (u_led < 0.5){
+    gl_FragColor = vec4(pattern(uv) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 g    = uv * GRID;
+  vec2 id   = floor(g);
+  vec2 f    = fract(g) - 0.5;
+  vec2 cuv  = (id + 0.5) / GRID;                 // 셀 중심에서 색 샘플 = 64x32로 양자화
+  vec3 led  = pattern(cuv) * u_bright * reveal(cuv);
+
+  float px  = GRID.x / u_res.x;                  // 셀 단위 1픽셀 크기 (AA용)
+  float d   = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+
+  vec3 board = vec3(0.012, 0.011, 0.014);        // 검은 판넬 바탕
+  vec3 col   = board + led * (core + halo * 0.6);
+  col += led * core * 0.15 * (1.0 - d / max(u_dot, 0.01)); // 도트 중앙 하이라이트
+
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+<script id="fs-streaks" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 세로줄 밀도
+uniform float u_band;    // 색수차(RGB 번짐) 세기
+uniform float u_dot;     // LED 반지름 (셀 대비)
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;     // 1 = LED 도트, 0 = 원본
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float h1(float n){ return fract(sin(n * 127.1) * 43758.5453); }
+float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+// 차분한 파스텔 줄 색 (라벤더 바탕 위주)
+vec3 pastel(float k){
+  k = floor(k * 8.0);
+  if (k < 1.0) return vec3(0.45, 0.45, 0.86);  // 페리윙클
+  if (k < 2.0) return vec3(0.24, 0.23, 0.62);  // 인디고
+  if (k < 3.0) return vec3(0.87, 0.83, 0.62);  // 연노랑
+  if (k < 4.0) return vec3(0.88, 0.62, 0.74);  // 더스티 핑크
+  if (k < 5.0) return vec3(0.86, 0.86, 0.94);  // 흰빛
+  if (k < 6.0) return vec3(0.60, 0.66, 0.82);  // 그레이 블루
+  if (k < 7.0) return vec3(0.70, 0.62, 0.88);  // 라일락
+  return vec3(0.66, 0.78, 0.74);               // 민트 그레이
+}
+// 가늘고 쨍한 라인 색
+vec3 vivid(float k){
+  k = floor(k * 6.0);
+  if (k < 1.0) return vec3(1.00, 0.86, 0.20);
+  if (k < 2.0) return vec3(1.00, 0.28, 0.30);
+  if (k < 3.0) return vec3(0.25, 0.90, 1.00);
+  if (k < 4.0) return vec3(0.62, 0.32, 1.00);
+  if (k < 5.0) return vec3(0.45, 1.00, 0.55);
+  return vec3(1.0);
+}
+
+const vec3 BASE = vec3(0.73, 0.72, 0.88);      // 라벤더 그레이 바탕
+const vec3 FOG  = vec3(0.70, 0.70, 0.86);      // 아래쪽 안개
+
+vec3 stripeCol(float id, float s){
+  float pick = h1(id * 3.1 + s * 17.7);
+  return pick < 0.4 ? BASE : pastel(h1(id + s * 7.13));
+}
+
+// x 위치(0~1)의 세로줄 색. 줄마다 제 박자로 색이 바뀌고 전체가 천천히 옆으로 흐름
+vec3 stripes(float x, float y, float t){
+  float drift = t * 0.12;
+  float u  = x * u_cols + drift * u_cols * 0.25;
+  float id = floor(u);
+  float r  = h1(id * 1.37);
+  float ph = t * (0.5 + 0.9 * r) + r * 10.0;
+  float s0 = floor(ph);
+  vec3 c = mix(stripeCol(id, s0), stripeCol(id, s0 + 1.0), smoothstep(0.8, 1.0, fract(ph)));
+
+  // 일부 줄에 가로 눈금(계단) 무늬
+  float tick = step(0.82, h1(id * 5.1 + s0)) * step(0.5, fract(y * 20.0 - t * 0.6));
+  c *= 1.0 - 0.38 * tick;
+
+  // 가끔 나타나는 쨍한 실선
+  float u2  = x * u_cols * 3.0 + drift * u_cols * 0.75;
+  float id2 = floor(u2);
+  float s2  = floor(t * (0.8 + h1(id2)) + h1(id2 * 3.0) * 5.0);
+  float on  = step(0.9, h1(id2 * 2.3 + s2 * 11.0));
+  float w   = 1.0 - smoothstep(0.1, 0.5, abs(fract(u2) - 0.5));
+  c = mix(c, vivid(h1(id2 + s2)), on * w * 0.85);
+
+  // 아래쪽에서 줄마다 다른 높이로 끝나며 안개로 번짐
+  float endY = 0.70 + 0.09 * h1(id * 9.7 + s0);
+  c = mix(c, FOG + 0.03 * sin(x * 37.0 + t), smoothstep(endY - 0.02, endY + 0.12, y));
+  return c;
+}
+
+vec3 pattern(vec2 uv){
+  float y  = 1.0 - uv.y;                         // 위 = 0
+  float t  = u_time;
+  float ab = 0.010 * u_band;
+
+  // RGB를 서로 다른 x에서 뽑아 색수차 번짐
+  vec3 c = vec3(stripes(uv.x + ab, y, t).r,
+                stripes(uv.x,      y, t).g,
+                stripes(uv.x - ab, y, t).b);
+
+  // 가로로 지나가는 두 개의 어두운 띠
+  float b1 = smoothstep(0.35, 0.38, y) * (1.0 - smoothstep(0.44, 0.47, y));
+  float b2 = smoothstep(0.54, 0.57, y) * (1.0 - smoothstep(0.63, 0.66, y));
+  float bands = b1 + b2;
+  c = mix(c, c * vec3(0.50, 0.50, 0.64), bands);
+  float hl = (y - 0.555) * 70.0;
+  c += 0.07 * exp(-hl * hl); // 띠 윗선 하이라이트
+
+  return c;
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    gl_FragColor = vec4(pattern(uv) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 g   = uv * GRID;
+  vec2 id  = floor(g);
+  vec2 f   = fract(g) - 0.5;
+  vec2 cuv = (id + 0.5) / GRID;
+
+  // 셀 안을 가로로 3번 샘플해 평균 → 가는 선도 LED 한 칸에 자연스럽게 섞임
+  float dx = 0.33 / GRID.x;
+  vec3 led = (pattern(cuv - vec2(dx, 0.0)) + pattern(cuv) + pattern(cuv + vec2(dx, 0.0))) / 3.0;
+  led *= u_bright * reveal(cuv);
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+
+  vec3 col = led * (core + halo * 0.6);
+  col += led * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+<script id="fs-mosaic" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 글리프 셀 크기 (LED 칸 수)
+uniform float u_band;    // 무늬 스케일
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 팔레트: 블랙 바탕 위 옐로/레드/오렌지/피치/블루/그린
+vec3 warm(float k){
+  k = floor(k * 7.0);
+  if (k < 1.0) return vec3(0.96, 0.76, 0.20);  // 옐로
+  if (k < 2.0) return vec3(0.91, 0.22, 0.12);  // 레드
+  if (k < 3.0) return vec3(0.95, 0.55, 0.15);  // 오렌지
+  if (k < 4.0) return vec3(0.97, 0.80, 0.68);  // 피치
+  if (k < 5.0) return vec3(0.94, 0.66, 0.66);  // 핑크
+  if (k < 6.0) return vec3(0.55, 0.10, 0.08);  // 다크 레드
+  return vec3(0.96, 0.89, 0.72);               // 크림
+}
+vec3 cool(float k){
+  k = floor(k * 3.0);
+  if (k < 1.0) return vec3(0.42, 0.62, 0.80);  // 스카이 블루
+  if (k < 2.0) return vec3(0.25, 0.55, 0.34);  // 그린
+  return vec3(0.45, 0.50, 0.25);               // 올리브
+}
+
+// 글리프 종류: 0 없음, 1 사각, 2 원, 3 링, 4 십자, 5 세로 해칭, 6 작은 점
+float glyph(float type, vec2 p){
+  float e = 0.04;
+  vec2 a = abs(p);
+  if (type < 0.5) return 0.0;
+  if (type < 1.5) return 1.0 - smoothstep(0.44 - e, 0.44, max(a.x, a.y));
+  if (type < 2.5) return 1.0 - smoothstep(0.40 - e, 0.40, length(p));
+  if (type < 3.5) return 1.0 - smoothstep(0.08 - e, 0.08, abs(length(p) - 0.30));
+  if (type < 4.5) return 1.0 - smoothstep(0.08 - e, 0.08, min(a.x, a.y));
+  if (type < 5.5) return (1.0 - smoothstep(0.46, 0.5, a.y)) * step(0.5, fract(p.x * 5.0 + 0.25));
+  return 1.0 - smoothstep(0.22 - e, 0.22, length(p));
+}
+
+// 셀 하나의 글리프와 색을 흐르는 노이즈 장에서 결정
+void cellInfo(vec2 cid, out float type, out vec3 col){
+  float t  = u_time * 0.22;
+  vec2  q  = cid * (0.065 * u_cols / u_band);
+  vec2  w  = vec2(fbm(q + vec2(t, 0.0)), fbm(q + vec2(5.2, 1.3) - t * 0.7));
+  float n1 = fbm(q + 2.2 * w + vec2(0.0, t * 0.6));
+  float n2 = fbm(q * 1.6 - 1.5 * w + 7.7 + t * 0.4);
+  float n3 = fbm(q * 0.7 + w + 3.3);
+  float rs = hash21(cid * 1.7 + 0.3);
+  float r  = hash21(cid + floor(u_time * 1.2 + rs * 3.0));
+
+  type = 0.0; col = vec3(0.0);
+  if (abs(n1 - 0.5) < 0.045){                     // 구불구불한 노란 선
+    type = 1.0; col = n3 > 0.5 ? vec3(0.96, 0.76, 0.20) : vec3(0.85, 0.66, 0.24);
+  } else if (n2 > 0.63){                          // 덩어리
+    if (n3 < 0.46){ type = 1.0; col = vec3(0.42, 0.62, 0.80); }
+    else if (n3 < 0.54){ type = 1.0; col = vec3(0.91, 0.22, 0.12); }
+    else { type = 5.0; col = vec3(0.88, 0.87, 0.84); }
+    if (r > 0.88){ type = 2.0; col = warm(rs); }  // 덩어리 속 점
+  } else if (n1 > 0.56){                          // 촘촘한 영역
+    // 영역마다 같은 글리프가 모이도록 (가끔 섞임)
+    float zone = floor(fract(n3 * 3.0 + n2) * 4.0);
+    type = 1.0 + (rs > 0.8 ? floor(fract(rs * 5.0) * 4.0) : zone);   // 사각/원/링/십자
+    col  = warm(fract(n2 * 2.0 + zone * 0.31));
+    if (type > 3.5) col = rs > 0.6 ? cool(fract(n3 * 2.0)) : vec3(0.92, 0.33, 0.28);  // 십자 그물
+    if (type > 2.5 && type < 3.5) col = vec3(0.95, 0.74, 0.25);                     // 노란 링
+  } else if (n1 < 0.43){                          // 성긴 영역: 흩어진 점
+    if (r > 0.86){ type = r > 0.95 ? 2.0 : 6.0; col = warm(fract(r * 5.0)); }
+  } else {                                        // 중간 영역
+    if (r > 0.55){
+      type = r > 0.8 ? 4.0 : (r > 0.68 ? 3.0 : 2.0);
+      col  = type > 3.5 ? cool(rs) : warm(rs);
+    }
+  }
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;      // LED 좌표 (위 = 0)
+  float cs = u_cols;
+
+  if (u_led < 0.5){
+    vec2 g = led / cs;
+    float type; vec3 c; cellInfo(floor(g), type, c);
+    gl_FragColor = vec4(c * glyph(type, fract(g) - 0.5) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  vec2 cid = floor((lid + 0.5) / cs);
+  float type; vec3 c; cellInfo(cid, type, c);
+
+  // LED 한 칸 안을 3x3으로 샘플해 글리프가 덮는 비율만큼 밝힘
+  float m = 0.0;
+  for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++){
+    vec2 sp = lid + vec2(float(i), float(j)) / 3.0 + 1.0 / 6.0;
+    m += glyph(type, sp / cs - cid - 0.5);
+  }
+  m /= 9.0;
+  vec3 ledc = c * m * u_bright * reveal((lid.xy * vec2(1.0, -1.0) + vec2(0.5, GRID.y - 0.5)) / GRID);
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-fans" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 링(점) 간격, LED 단위
+uniform float u_band;    // 부채꼴 각도 배율
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+const float TAU = 6.2831853;
+
+// 파랑 → 시안 → 흰빛 → 노랑 → 주황빨강
+vec3 spectrum(float h){
+  h = clamp(h, 0.0, 1.0) * 4.0;
+  vec3 c0 = vec3(0.15, 0.25, 1.00), c1 = vec3(0.30, 0.85, 1.00), c2 = vec3(1.00, 1.00, 0.95);
+  vec3 c3 = vec3(1.00, 0.80, 0.30), c4 = vec3(1.00, 0.32, 0.18);
+  if (h < 1.0) return mix(c0, c1, h);
+  if (h < 2.0) return mix(c1, c2, h - 1.0);
+  if (h < 3.0) return mix(c2, c3, h - 2.0);
+  return mix(c3, c4, h - 3.0);
+}
+
+// 축(piv)을 중심으로 도는 부채꼴. 동심원 위에 점이 일정 간격으로 놓임
+vec3 fan(vec2 p, vec2 piv, float ang, float span, float R, float st, float flip){
+  vec2 d = p - piv;
+  float r = length(d);
+  if (r > R) return vec3(0.0);
+  float a = mod(atan(d.y, d.x) - ang, TAU);
+  if (a > span + 0.3) return vec3(0.0);
+  float k = floor(r / st + 0.5);
+  if (k < 1.0) return vec3(0.0);
+  float rr = k * st;
+  float ac, dm;
+  if (u_led > 0.5){
+    // LED 모드: 동심원 '선'만 그림 → LED 하나하나가 점이 되어 점선 호처럼 보임
+    ac = a;
+    if (ac > span) return vec3(0.0);
+    dm = 1.0 - smoothstep(0.22 * st, 0.34 * st, abs(r - rr));
+  } else {
+    ac = floor(a * rr / st + 0.5) * st / rr;      // 호 위 가장 가까운 점
+    if (ac > span) return vec3(0.0);
+    vec2 c = piv + rr * vec2(cos(ac + ang), sin(ac + ang));
+    dm = 1.0 - smoothstep(0.26 * st, 0.36 * st, length(p - c));
+  }
+  float u = ac / span;
+  float hue = clamp((flip > 0.5 ? 1.0 - u : u) * 0.8 + 0.2 * rr / R, 0.0, 1.0);
+  float lead = 0.3 + 0.7 * smoothstep(0.0, 0.35, flip > 0.5 ? u : 1.0 - u);  // 한쪽 끝은 흐리게
+  return spectrum(hue) * dm * lead;
+}
+
+vec3 pattern(vec2 p){                            // p = LED 좌표 (위 = 0)
+  float t = u_time * 0.8;
+  vec2 C = GRID * 0.5;
+  float R = 26.0;                                  // 반지름은 고정
+  vec3 col = vec3(0.0);
+  for (int i = 0; i < 3; i++){
+    float fi = float(i);
+    float ph = fi * TAU / 3.0;
+    vec2 piv = C + vec2(cos(t * 0.15 + ph) * 6.0, sin(t * 0.15 + ph) * 12.0);
+    float dir = mod(fi, 2.0) < 0.5 ? 1.0 : -1.0;
+    float ang = ph + dir * t * 0.35 + 1.1 * sin(t * 0.6 + fi * 1.7);
+    float span = (2.7 + 0.5 * sin(t * 0.4 + fi)) * u_band;   // 약 125°~185°, 슬라이더로 넓힘
+    col += fan(p, piv, ang, span, R, u_cols, mod(fi, 2.0));
+  }
+  return min(col, vec3(1.2));
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv  = gl_FragCoord.xy / u_res;
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+
+  if (u_led < 0.5){
+    gl_FragColor = vec4(pattern(led) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  // LED 한 칸을 3x3으로 샘플: 선이 덮는 만큼 켜짐
+  vec3 s = vec3(0.0);
+  for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+    s += pattern(lid + vec2(float(i), float(j)) / 3.0 + 1.0 / 6.0);
+  vec3 ledc = min(s / 9.0 * 1.6, vec3(1.0)) * u_bright;
+  ledc *= reveal(vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y));
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-moire" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+uniform float u_c;       // 0 = 직선 겹침, 1 = 동심원 겹침, 2 = LED 격자 간섭
+const float TAU = 6.2831853;
+
+// 가는 줄 (1 = 밝은 줄). 주기가 LED 피치에 가까울수록 간섭이 강해짐
+float lines(float x, float per){
+  float s = 0.5 + 0.5 * cos(TAU * x / per);
+  return smoothstep(0.30, 0.70, s);
+}
+mat2 rot(float a){ return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  vec2  P   = uv * GRID;                         // LED 단위 좌표
+  vec2  c   = P - GRID * 0.5;
+  float t   = u_time;
+  float per = u_cols;
+  float A, B;
+
+  if (u_c < 0.5){
+    // 세로줄 두 장: 한 장은 고정, 한 장은 아주 조금 기울고 간격이 미세하게 숨 쉼
+    A = lines(P.x, per);
+    vec2 q = rot(radians(u_band) * sin(t * 0.25)) * c;
+    B = lines(q.x + t * 0.15, per * (1.0 + 0.05 * sin(t * 0.17)));
+  } else if (u_c < 1.5){
+    // 동심원 두 장: 중심이 서로 맴돌며 멀어졌다 가까워짐
+    float sep = 3.0 + u_band * 0.6 * (0.6 + 0.4 * sin(t * 0.3));
+    vec2  o   = vec2(cos(t * 0.21), sin(t * 0.21) * 1.6) * sep;
+    A = lines(length(c - o), per);
+    B = lines(length(c + o), per);
+  } else {
+    // 움직이는 세로줄 한 장 + LED 격자(1칸 주기 세로줄). 피치가 1칸에 가까울 때 띠가 크게 출렁임
+    vec2 q = rot(radians(u_band) * 0.5 * sin(t * 0.25)) * c;
+    // 주기를 LED 1칸 근처에서 천천히 오가게 해 큰 띠가 생겼다 사라짐
+    float p2 = 1.0 + 0.10 * sin(t * 0.13) + (per - 1.3) * 0.1;
+    B = lines(q.x - t * 0.2, p2);
+    A = (u_led > 0.5) ? 1.0 : lines(P.x - 0.5, 1.0);   // LED 모드는 실제 격자가 그 역할
+  }
+
+  float m  = A * B;                               // 두 장이 겹쳐 비치는 부분만 밝음
+  vec3 tint = mix(vec3(0.70, 0.76, 1.00), vec3(1.00, 0.78, 0.62),
+                  0.5 + 0.5 * sin(length(c) * 0.08 - t * 0.3));
+  return tint * m * 1.15 + 0.03 * (A + B) * tint;
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(max(c, 0.0) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  vec3 ledc;
+  if (u_c > 1.5){
+    ledc = pattern((lid + 0.5) / GRID);          // LED 중심 한 점 → 격자 자체와 간섭
+  } else {
+    // 4x4 평균 = 멀리서 눈에 보이는 겹침 띠(무아레) + 중심 샘플로 가는 줄 결을 조금 남김
+    vec3 s = vec3(0.0);
+    for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++)
+      s += pattern((lid + (vec2(float(i), float(j)) + 0.5) / 4.0) / GRID);
+    vec3 env = s / 16.0;
+    env = env * smoothstep(0.06, 0.38, max(env.r, max(env.g, env.b))) * 2.2;  // 띠 대비 강조
+    ledc = env * 0.85 + pattern((lid + 0.5) / GRID) * 0.15;
+  }
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = max(ledc, 0.0) * u_bright;
+  ledc *= reveal(vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y));
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-aura1" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 이미지 1: 하늘색 · 오렌지 · 핑크 테두리 · 인디고가 녹아 흐르는 블러 오로라
+// 고주파 없이 부드러운 노이즈 (이미지처럼 흐릿한 경계)
+float soft(vec2 p){ return 0.62 * vnoise(p) + 0.28 * vnoise(p * 2.03 + 17.1) + 0.10 * vnoise(p * 4.1 + 3.7); }
+
+vec3 ramp(float f){
+  vec3 c = vec3(0.68, 0.80, 0.98);                                   // 하늘색
+  c = mix(c, vec3(1.00, 0.55, 0.10), smoothstep(0.21, 0.33, f));    // 오렌지
+  c = mix(c, vec3(0.98, 0.70, 0.52), smoothstep(0.35, 0.41, f) * (1.0 - smoothstep(0.41, 0.47, f)) * 0.5); // 피치 결
+  c = mix(c, vec3(1.00, 0.56, 0.95), smoothstep(0.47, 0.53, f));    // 핑크 테두리
+  c = mix(c, vec3(0.62, 0.40, 0.88), smoothstep(0.52, 0.61, f));    // 바이올렛
+  c = mix(c, vec3(0.20, 0.16, 0.48), smoothstep(0.60, 0.80, f));    // 인디고
+  return c;
+}
+
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  float t = u_time * 0.15;
+  vec2  p = vec2(uv.x * 0.5, uv.y) * 1.5 / u_band;
+  vec2  w = vec2(soft(p * 1.1 + vec2(t, 0.0)), soft(p * 1.1 + vec2(3.1, -t)));
+  float f = soft(p + 1.3 * u_cols * w + vec2(0.0, t * 0.5));
+  f = f * 0.9 + uv.x * 0.55 - 0.19 + 0.12 * (uv.y - 0.3);
+  return ramp(f);
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 수채화 번짐: 우측 하단 모서리에서 물감이 종이에 스며들듯 퍼져 들어옴
+// uv: GL 좌표 (아래 = 0)
+vec3 wash(vec3 c, vec2 uv){
+  vec2  q  = vec2(uv.x * 0.5, uv.y);             // 가로세로 비율 보정
+  float d  = length(q - vec2(0.5, 0.0));         // 우측 하단에서의 거리
+  float r  = u_reveal;
+  // 번지는 경계: 큰 얼룩 + 가는 실핏줄 같은 결 (시간에 따라 조금씩 꿈틀)
+  float n  = 0.34 * fbm(q * 3.2 + vec2(r * 0.7, -r * 0.4))
+           + 0.10 * fbm(q * 11.0 - r * 0.5);
+  float R  = r * 1.9 - 0.3;                      // 퍼진 반경
+  float x  = d + n - 0.2;
+  float m  = smoothstep(R, R - 0.22, x);         // 물감이 닿은 정도
+
+  // 번짐 경계에 안료가 고여 조금 더 짙어지는 '물자국'
+  float ring = smoothstep(R - 0.24, R - 0.10, x) * m;
+  vec3  deep = c * c * 1.25;
+  c = mix(c, deep, ring * 0.55 * (1.0 - smoothstep(0.85, 1.0, r)));
+
+  // 아직 젖어 있는 앞쪽은 살짝 묽고 밝게
+  float wet = smoothstep(R - 0.5, R - 0.2, x) * (1.0 - smoothstep(0.9, 1.0, r));
+  c = mix(c, c * 0.75 + 0.25, wet * 0.25);
+  return c * m;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(wash(max(c, 0.0), uv) * u_bright, 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  vec3 ledc = pattern((lid + 0.5) / GRID);
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = wash(max(ledc, 0.0), vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y)) * u_bright;
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-aura2" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 이미지 2: 노란 테두리 → 핑크 → 보라 → 짙은 남색 캡슐이 숨 쉬듯 일렁임
+float sdRoundBox(vec2 p, vec2 b, float r){
+  vec2 q = abs(p) - b + r;
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  float t = u_time;
+  vec2  p = vec2((uv.x - 0.5) * 0.5, uv.y - 0.5);
+  float br = 1.0 + 0.10 * u_cols * sin(t * 0.5);
+  p.y += 0.020 * u_cols * sin(p.x * 14.0 + t * 1.1);
+  p.x += 0.012 * u_cols * sin(p.y * 9.0 - t * 0.8);
+  p.y += 0.04 * sin(t * 0.3);
+
+  float s = u_band;
+  float d = sdRoundBox(p, vec2(0.17, 0.065) * br, 0.06) / s;
+  float e = min(0.25 - abs(p.x), 0.5 - abs(p.y)) / s;   // 판넬 가장자리까지 거리
+
+  vec3 c = vec3(0.02, 0.00, 0.14);                                   // 짙은 남색
+  c = mix(c, vec3(0.20, 0.08, 1.00), smoothstep(-0.02, 0.04, d));    // 블루
+  c = mix(c, vec3(0.58, 0.22, 1.00), smoothstep(0.03, 0.11, d));     // 보라
+  c = mix(c, vec3(0.90, 0.42, 0.78), smoothstep(0.10, 0.26, d));     // 핑크
+  c = mix(c, vec3(1.00, 0.68, 0.10), 1.0 - smoothstep(0.0, 0.07, e)); // 노란 테두리
+  return c;
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 수채화 번짐: 우측 하단 모서리에서 물감이 종이에 스며들듯 퍼져 들어옴
+// uv: GL 좌표 (아래 = 0)
+vec3 wash(vec3 c, vec2 uv){
+  vec2  q  = vec2(uv.x * 0.5, uv.y);             // 가로세로 비율 보정
+  float d  = length(q - vec2(0.5, 0.0));         // 우측 하단에서의 거리
+  float r  = u_reveal;
+  // 번지는 경계: 큰 얼룩 + 가는 실핏줄 같은 결 (시간에 따라 조금씩 꿈틀)
+  float n  = 0.34 * fbm(q * 3.2 + vec2(r * 0.7, -r * 0.4))
+           + 0.10 * fbm(q * 11.0 - r * 0.5);
+  float R  = r * 1.9 - 0.3;                      // 퍼진 반경
+  float x  = d + n - 0.2;
+  float m  = smoothstep(R, R - 0.22, x);         // 물감이 닿은 정도
+
+  // 번짐 경계에 안료가 고여 조금 더 짙어지는 '물자국'
+  float ring = smoothstep(R - 0.24, R - 0.10, x) * m;
+  vec3  deep = c * c * 1.25;
+  c = mix(c, deep, ring * 0.55 * (1.0 - smoothstep(0.85, 1.0, r)));
+
+  // 아직 젖어 있는 앞쪽은 살짝 묽고 밝게
+  float wet = smoothstep(R - 0.5, R - 0.2, x) * (1.0 - smoothstep(0.9, 1.0, r));
+  c = mix(c, c * 0.75 + 0.25, wet * 0.25);
+  return c * m;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(wash(max(c, 0.0), uv) * u_bright, 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  vec3 ledc = pattern((lid + 0.5) / GRID);
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = wash(max(ledc, 0.0), vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y)) * u_bright;
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-aura3" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 이미지 3: 검은 하늘 아래 U자로 휘어지는 불꽃 그라데이션, 바닥은 라일락
+float curveY(float x, float t){
+  float x0 = 0.32 + 0.05 * sin(t * 0.5);
+  float dx = x - x0;
+  float k  = dx < 0.0 ? 7.0 : 0.9;               // 왼쪽은 가파르게, 오른쪽은 완만한 U자
+  float l  = k * dx * dx, r = 0.0;
+  float wv = u_cols * (0.035 * sin(x * 6.0 + t * 0.9) + 0.03 * (fbm(vec2(x * 3.0, t * 0.2)) - 0.5));
+  return 0.84 - l - r + wv + 0.02 * sin(t * 0.37);
+}
+
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  float t = u_time * 0.8;
+  float e = 0.01;
+  float cy = curveY(uv.x, t);
+  float sl = (curveY(uv.x + e, t) - curveY(uv.x - e, t)) / (2.0 * e) * 2.0;  // 가로세로 비율 보정
+  float v  = (cy - uv.y) / sqrt(1.0 + sl * sl) / u_band;            // 곡선 위쪽이 +
+
+  vec3 lilac = vec3(0.82, 0.70, 0.93);
+  vec3 c = vec3(1.00, 0.64, 0.12);                                   // 노랑-주황 가장자리
+  c = mix(c, vec3(0.98, 0.34, 0.07), smoothstep(0.02, 0.12, v));    // 주황
+  c = mix(c, vec3(0.72, 0.08, 0.05), smoothstep(0.10, 0.24, v));    // 빨강
+  c = mix(c, vec3(0.18, 0.02, 0.02), smoothstep(0.22, 0.36, v));    // 검붉은
+  c = mix(c, vec3(0.0),              smoothstep(0.34, 0.50, v));    // 검정
+  c = mix(lilac, c, smoothstep(-0.035, 0.015, v));                  // 아래는 라일락
+  return c;
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 수채화 번짐: 우측 하단 모서리에서 물감이 종이에 스며들듯 퍼져 들어옴
+// uv: GL 좌표 (아래 = 0)
+vec3 wash(vec3 c, vec2 uv){
+  vec2  q  = vec2(uv.x * 0.5, uv.y);             // 가로세로 비율 보정
+  float d  = length(q - vec2(0.5, 0.0));         // 우측 하단에서의 거리
+  float r  = u_reveal;
+  // 번지는 경계: 큰 얼룩 + 가는 실핏줄 같은 결 (시간에 따라 조금씩 꿈틀)
+  float n  = 0.34 * fbm(q * 3.2 + vec2(r * 0.7, -r * 0.4))
+           + 0.10 * fbm(q * 11.0 - r * 0.5);
+  float R  = r * 1.9 - 0.3;                      // 퍼진 반경
+  float x  = d + n - 0.2;
+  float m  = smoothstep(R, R - 0.22, x);         // 물감이 닿은 정도
+
+  // 번짐 경계에 안료가 고여 조금 더 짙어지는 '물자국'
+  float ring = smoothstep(R - 0.24, R - 0.10, x) * m;
+  vec3  deep = c * c * 1.25;
+  c = mix(c, deep, ring * 0.55 * (1.0 - smoothstep(0.85, 1.0, r)));
+
+  // 아직 젖어 있는 앞쪽은 살짝 묽고 밝게
+  float wet = smoothstep(R - 0.5, R - 0.2, x) * (1.0 - smoothstep(0.9, 1.0, r));
+  c = mix(c, c * 0.75 + 0.25, wet * 0.25);
+  return c * m;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(wash(max(c, 0.0), uv) * u_bright, 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  vec3 ledc = pattern((lid + 0.5) / GRID);
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = wash(max(ledc, 0.0), vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y)) * u_bright;
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-venn" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 겹친 원: 빨강·초록·파랑 빛의 원 세 개가 떠다니며 겹치는 곳에서 노랑·시안·마젠타·흰빛이 됨
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  vec2  P = uv * GRID;
+  vec2  C = GRID * 0.5;
+  float t = u_time;
+  vec3 pal[3];
+  pal[0] = vec3(1.00, 0.22, 0.32);
+  pal[1] = vec3(0.22, 1.00, 0.45);
+  pal[2] = vec3(0.30, 0.40, 1.00);
+  vec3 col = vec3(0.0);
+  for (int i = 0; i < 3; i++){
+    float fi = float(i), ph = fi * 2.094;
+    vec2  o  = C + vec2(cos(t * (0.33 + 0.07 * fi) + ph) * 7.0,
+                        sin(t * (0.21 + 0.05 * fi) + ph * 1.3) * 15.0);
+    float r  = (11.0 + 2.0 * sin(t * 0.5 + fi)) * u_band;
+    float d  = length(P - o);
+    float m  = 1.0 - smoothstep(r - 0.8, r + 0.3, d);                 // 원 안
+    float rg = 0.45 + 0.55 * step(0.5, fract(d / u_cols - t * 0.4));  // 안쪽 동심원 결 (바깥으로 흐름)
+    float rim = exp(-(d - r) * (d - r) * 1.2);                         // 밝은 테두리
+    col += pal[i] * (m * rg * 0.55 + rim * 0.55);
+  }
+  return min(col, vec3(1.0));
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(max(c, 0.0) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  // LED 한 칸을 3x3으로 샘플: 가는 선·테두리도 덮는 만큼 켜짐
+  vec3 ledc = vec3(0.0);
+  for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+    ledc += pattern((lid + (vec2(float(i), float(j)) + 0.5) / 3.0) / GRID);
+  ledc = min(ledc / 9.0 * 1.25, vec3(1.0));
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = max(ledc, 0.0) * u_bright;
+  ledc *= reveal(vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y));
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-bundles" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 선다발 교차: 평행선 다발 세 개가 각자 돌며 겹치면 교차점이 격자처럼 반짝임
+mat2 rot(float a){ return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  vec2  P = uv * GRID;
+  vec2  C = GRID * 0.5;
+  float t = u_time;
+  vec3 pal[3];
+  pal[0] = vec3(1.00, 0.45, 0.20);
+  pal[1] = vec3(0.25, 0.75, 1.00);
+  pal[2] = vec3(0.85, 0.40, 1.00);
+  float m[3];
+  vec3 col = vec3(0.0);
+  for (int i = 0; i < 3; i++){
+    float fi  = float(i), ph = fi * 2.094;
+    vec2  o   = C + vec2(cos(t * 0.17 + ph) * 5.0, sin(t * 0.13 + ph) * 12.0);
+    float dir = mod(fi, 2.0) < 0.5 ? 1.0 : -1.0;
+    vec2  q   = rot(-(ph + dir * t * 0.22 + 0.6 * sin(t * 0.3 + fi))) * (P - o);
+    float W   = 9.0 * u_band;
+    float band = (1.0 - smoothstep(W - 0.6, W + 0.6, abs(q.y)))
+               * (1.0 - smoothstep(28.0, 30.0, abs(q.x)));
+    float dl  = abs(fract(q.y / u_cols + 0.5) - 0.5) * u_cols;        // 가장 가까운 선까지 거리
+    m[i] = (1.0 - smoothstep(0.22, 0.42, dl)) * band;
+    col += pal[i] * m[i] * 0.85;
+  }
+  col += vec3(1.0) * 0.7 * (m[0] * m[1] + m[1] * m[2] + m[0] * m[2]);  // 교차점 하이라이트
+  return min(col, vec3(1.0));
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(max(c, 0.0) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  // LED 한 칸을 3x3으로 샘플: 가는 선·테두리도 덮는 만큼 켜짐
+  vec3 ledc = vec3(0.0);
+  for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+    ledc += pattern((lid + (vec2(float(i), float(j)) + 0.5) / 3.0) / GRID);
+  ledc = min(ledc / 9.0 * 1.25, vec3(1.0));
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = max(ledc, 0.0) * u_bright;
+  ledc *= reveal(vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y));
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-xor" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 반전 아크: 굵은 반원 고리들이 돌다가 겹치면 서로 지워지고(XOR) 홀수 겹침만 빛남
+const float TAU = 6.2831853;
+
+vec3 spectrum(float h){
+  h = clamp(h, 0.0, 1.0) * 4.0;
+  vec3 c0 = vec3(0.15, 0.25, 1.00), c1 = vec3(0.30, 0.85, 1.00), c2 = vec3(1.00, 1.00, 0.95);
+  vec3 c3 = vec3(1.00, 0.80, 0.30), c4 = vec3(1.00, 0.32, 0.18);
+  if (h < 1.0) return mix(c0, c1, h);
+  if (h < 2.0) return mix(c1, c2, h - 1.0);
+  if (h < 3.0) return mix(c2, c3, h - 2.0);
+  return mix(c3, c4, h - 3.0);
+}
+
+float arc(vec2 P, vec2 o, float R, float th, float ang, float span){
+  vec2  d = P - o;
+  float r = length(d);
+  float a = mod(atan(d.y, d.x) - ang, TAU);
+  float ring = 1.0 - smoothstep(th * 0.5 - 0.5, th * 0.5 + 0.5, abs(r - R));
+  float sec  = 1.0 - smoothstep(span - 0.04, span + 0.04, a);
+  return ring * sec;
+}
+
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  vec2  P = uv * GRID;
+  vec2  C = GRID * 0.5;
+  float t = u_time * 0.8;
+  vec2  oA = C + vec2(0.0, -8.0) + vec2(cos(t * 0.2), sin(t * 0.27)) * 3.0;
+  vec2  oB = C + vec2(0.0,  8.0) + vec2(sin(t * 0.23), cos(t * 0.19)) * 3.0;
+  float th = 4.0 * u_cols;
+  float x = 0.0, any = 0.0;
+  for (int i = 0; i < 6; i++){
+    float fi = float(i);
+    vec2  o  = mod(fi, 2.0) < 0.5 ? oA : oB;
+    float R  = (6.0 + fi * 2.6) * u_band;
+    float dir = mod(fi, 3.0) < 1.5 ? 1.0 : -1.0;
+    float a  = arc(P, o, R, th, fi * 1.3 + dir * t * (0.25 + 0.06 * fi), 3.1416);
+    x = x + a - 2.0 * x * a;                     // 부드러운 XOR
+    any = max(any, a);
+  }
+  float h = 0.5 + 0.5 * sin(atan(P.y - C.y, P.x - C.x) + t * 0.3);
+  return spectrum(h) * x + spectrum(1.0 - h) * (any - x) * 0.12;  // 짝수 겹침은 아주 희미하게
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(max(c, 0.0) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  // LED 한 칸을 3x3으로 샘플: 가는 선·테두리도 덮는 만큼 켜짐
+  vec3 ledc = vec3(0.0);
+  for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+    ledc += pattern((lid + (vec2(float(i), float(j)) + 0.5) / 3.0) / GRID);
+  ledc = min(ledc / 9.0 * 1.25, vec3(1.0));
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = max(ledc, 0.0) * u_bright;
+  ledc *= reveal(vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y));
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+<script id="fs-frames" type="x-shader/x-fragment">
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform float u_cols;    // 패턴별 슬라이더 A
+uniform float u_band;    // 패턴별 슬라이더 B
+uniform float u_dot;
+uniform float u_glow;
+uniform float u_bright;
+uniform float u_led;
+
+const vec2 GRID = vec2(32.0, 64.0);   // P2.5 세로형: 가로 32 x 세로 64
+
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){ s += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s;
+}
+
+// 회전 프레임: 사각 테두리 두 묶음이 서로 반대로 돌며 겹치고, 만나는 점이 하얗게 빛남
+mat2 rot(float a){ return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+float sdBox(vec2 p, vec2 b){ vec2 q = abs(p) - b; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0); }
+
+float frames(vec2 p, float w, float s, float t){
+  float m = 0.0;
+  for (int k = 1; k <= 4; k++){
+    float sz = float(k) * 4.2 * s + 0.6 * sin(t * 0.7 + float(k));
+    m = max(m, 1.0 - smoothstep(w * 0.5 - 0.4, w * 0.5 + 0.4, abs(sdBox(p, vec2(sz)))));
+  }
+  return m;
+}
+
+vec3 pattern(vec2 uv){                           // uv: 0~1, 위 = 0
+  vec2  P = uv * GRID;
+  vec2  C = GRID * 0.5;
+  float t = u_time;
+  float w = 1.3 * u_cols;
+  vec2  oA = C + vec2(sin(t * 0.21) * 4.0, -9.0 + cos(t * 0.17) * 6.0);
+  vec2  oB = C + vec2(cos(t * 0.19) * 4.0,  9.0 + sin(t * 0.23) * 6.0);
+  float a = frames(rot( t * 0.30) * (P - oA), w, u_band, t);
+  float b = frames(rot(-t * 0.24 + 0.4) * (P - oB), w, u_band, t + 2.0);
+  vec3 col = vec3(1.00, 0.55, 0.20) * a * 0.85 + vec3(0.30, 0.65, 1.00) * b * 0.85;
+  col += vec3(1.0) * a * b * 0.9;                // 겹치는 점
+  return min(col, vec3(1.0));
+}
+
+uniform float u_reveal;  // 0 → 1 시작 애니메이션
+
+// 아래에서 스며들듯 올라오는 마스크 (열마다 경계가 조금씩 다름)
+float reveal(vec2 uv){
+  float col  = floor(uv.x * 32.0);
+  float n    = 0.12 * fract(sin(col * 91.7) * 43758.5453)
+             + 0.04 * sin(col * 0.9 + u_reveal * 6.0);
+  float edge = u_reveal * 1.75 - 0.1;
+  return smoothstep(edge, edge - 0.45, uv.y + n);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+
+  if (u_led < 0.5){
+    vec3 c = pattern(vec2(uv.x, 1.0 - uv.y));
+    c += (hash21(gl_FragCoord.xy + fract(u_time) * 97.0) - 0.5) * 0.06;   // 필름 그레인
+    gl_FragColor = vec4(max(c, 0.0) * u_bright * reveal(uv), 1.0);
+    return;
+  }
+
+  vec2 led = vec2(uv.x, 1.0 - uv.y) * GRID;
+  vec2 lid = floor(led);
+  vec2 f   = fract(led) - 0.5;
+  // LED 한 칸을 3x3으로 샘플: 가는 선·테두리도 덮는 만큼 켜짐
+  vec3 ledc = vec3(0.0);
+  for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+    ledc += pattern((lid + (vec2(float(i), float(j)) + 0.5) / 3.0) / GRID);
+  ledc = min(ledc / 9.0 * 1.25, vec3(1.0));
+  ledc += (hash21(lid + floor(u_time * 12.0)) - 0.5) * 0.03;           // LED 단위 미세 그레인
+  ledc = max(ledc, 0.0) * u_bright;
+  ledc *= reveal(vec2((lid.x + 0.5) / GRID.x, 1.0 - (lid.y + 0.5) / GRID.y));
+
+  float px   = GRID.x / u_res.x;
+  float d    = length(f);
+  float core = 1.0 - smoothstep(u_dot - px, u_dot + px, d);
+  float halo = exp(-d * d * 18.0) * u_glow;
+  vec3 o = ledc * (core + halo * 0.6);
+  o += ledc * core * 0.12 * (1.0 - d / max(u_dot, 0.01));
+  gl_FragColor = vec4(o, 1.0);
+}
+</script>
+
+<script>
+(() => {
+  const PATS = ['sunset', 'streaks', 'mosaic', 'fans', 'moire', 'aura1', 'aura2', 'aura3', 'venn', 'bundles', 'xor', 'frames'];
+  const vsSrc = 'attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }';
+  const names = ['u_res','u_time','u_cols','u_band','u_dot','u_glow','u_bright','u_led','u_reveal','u_c'];
+
+  function makePanel(canvas, fsSrc){
+    const gl = canvas.getContext('webgl', {antialias:false});
+    if (!gl){
+      canvas.replaceWith(Object.assign(document.createElement('p'),
+        {className:'err', textContent:'이 브라우저에서 WebGL을 사용할 수 없습니다. 다른 브라우저로 열어 주세요.'}));
+      return null;
+    }
+    const sh = (type, src) => {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, vsSrc));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fsSrc));
+    gl.linkProgram(prog); gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p');
+    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const U = {}; names.forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+    return function draw(t, p){
+      if (!canvas.offsetParent) return;          // 숨겨진 판넬은 그리지 않음
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+      if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; gl.viewport(0,0,w,h); }
+      gl.uniform2f(U.u_res, w, h);
+      gl.uniform1f(U.u_time, t);
+      gl.uniform1f(U.u_cols, p.a); gl.uniform1f(U.u_band, p.b);
+      gl.uniform1f(U.u_dot, p.dot); gl.uniform1f(U.u_glow, p.glow);
+      gl.uniform1f(U.u_bright, p.bright); gl.uniform1f(U.u_led, p.led);
+      gl.uniform1f(U.u_reveal, p.reveal); gl.uniform1f(U.u_c, p.c);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+  }
+
+  const draws = {};
+  PATS.forEach(k => {
+    const src = document.getElementById('fs-' + k).textContent.trim();
+    document.querySelector(`pre[data-src="${k}"]`).textContent = src;
+    draws[k] = makePanel(document.querySelector(`figure[data-pat="${k}"] canvas`), src);
+  });
+
+  // 슬라이더
+  const v = {};
+  const f2 = x => x.toFixed(2);
+  const fmt = {speed:x=>f2(x)+'×', dot:f2, glow:x=>Math.round(x*100)+'%', bright:x=>Math.round(x*100)+'%',
+               sunsetA:x=>x+'개', sunsetB:f2, streaksA:x=>x+'줄', streaksB:f2,
+               mosaicA:x=>x+'×'+x+' LED', mosaicB:f2,
+               fansA:x=>f2(x)+' LED', fansB:x=>'약 '+Math.round(155*x)+'°', moireA:x=>f2(x)+' LED', moireB:x=>x.toFixed(1),
+               aura1A:f2, aura1B:f2, aura2A:f2, aura2B:f2, aura3A:f2, aura3B:f2,
+               vennA:x=>f2(x)+' LED', vennB:x=>Math.round(x*100)+'%', bundlesA:x=>f2(x)+' LED', bundlesB:x=>Math.round(x*100)+'%', xorA:x=>Math.round(x*100)+'%', xorB:x=>Math.round(x*100)+'%', framesA:x=>Math.round(x*100)+'%', framesB:x=>Math.round(x*100)+'%'};
+  Object.keys(fmt).forEach(id => {
+    const el = document.getElementById(id), out = el.parentElement.querySelector('output');
+    const upd = () => { v[id] = parseFloat(el.value); out.textContent = fmt[id](v[id]); };
+    el.addEventListener('input', upd); upd();
+  });
+  const radios = document.querySelectorAll('input[name="moireC"]');
+  const updC = () => { v.moireC = parseFloat(document.querySelector('input[name="moireC"]:checked').value); };
+  radios.forEach(r => r.addEventListener('change', updC)); updC();
+
+  // 패턴 선택
+  const modeBtns = document.querySelectorAll('.modes button');
+  function setMode(m){
+    modeBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    document.querySelectorAll('[data-pat]').forEach(el => el.hidden = !(m === 'all' || el.dataset.pat === m));
+    document.body.classList.toggle('multi', m === 'all');
+    document.querySelectorAll('figcaption').forEach(c => c.hidden = m !== 'all');
+  }
+  modeBtns.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  setMode('venn');
+
+  let led = 1, paused = false;
+  const vLed = document.getElementById('vLed'), vRaw = document.getElementById('vRaw'), pauseBtn = document.getElementById('pause');
+  vLed.onclick = () => { led = 1; vLed.setAttribute('aria-pressed','true'); vRaw.setAttribute('aria-pressed','false'); };
+  vRaw.onclick = () => { led = 0; vRaw.setAttribute('aria-pressed','true'); vLed.setAttribute('aria-pressed','false'); };
+  pauseBtn.onclick = () => { paused = !paused; pauseBtn.setAttribute('aria-pressed', String(paused)); };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const sp = document.getElementById('speed'); sp.value = 0.35; sp.dispatchEvent(new Event('input'));
+  }
+
+  let t = 0, last = performance.now(), frames = 0, fpsT = last;
+  const REVEAL_MS = 8000;                       // 스며드는 시간
+  const WASH_MS   = 14000;                      // 블러 패턴: 수채화 번짐 시간
+  const BLUR = new Set(['aura1', 'aura2', 'aura3']);
+  let revealStart = null;                       // 첫 프레임에서 시작
+  document.getElementById('replay').onclick = () => { t = 0; revealStart = performance.now(); };
+
+  function frame(now){
+    const dt = Math.min((now - last) / 1000, 0.1); last = now;
+    if (!paused) t += dt * v.speed;
+    if (revealStart === null) revealStart = now;
+    const ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;   // easeInOutQuad
+    const r  = Math.min(Math.max((now - revealStart) / REVEAL_MS, 0), 1);
+    const rw = Math.min(Math.max((now - revealStart) / WASH_MS, 0), 1);
+    const reveal = ease(r);
+    const washR  = 1 - Math.pow(1 - rw, 2.2);                              // 처음엔 스르륵, 끝은 아주 천천히
+    const common = {dot:v.dot, glow:v.glow, bright:v.bright, led};
+    PATS.forEach(k => { if (draws[k]) draws[k](t, {...common, reveal: BLUR.has(k) ? washR : reveal,
+                                                   a:v[k + 'A'], b:v[k + 'B'], c:(v[k + 'C'] ?? 0)}); });
+    frames++;
+    if (now - fpsT > 500){ fpsEl.textContent = Math.round(frames * 1000 / (now - fpsT)) + ' fps'; frames = 0; fpsT = now; }
+    requestAnimationFrame(frame);
+  }
+  const fpsEl = document.getElementById('fps');
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

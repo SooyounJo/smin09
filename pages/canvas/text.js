@@ -13,7 +13,7 @@ export default function TextInputPage() {
       <header className={styles.topNav}>
         <Link href="/">← smo text</Link>
         <span>텍스트 인풋</span>
-        <span />
+        <Link href="/archive">아카이브</Link>
       </header>
       <TextSensoryWorkbench />
     </div>

@@ -18,6 +18,15 @@ export default function HomePage() {
           <Link href="/canvas/text" className={styles.actionBtn}>
             텍스트 인풋
           </Link>
+          <Link href="/archive" className={styles.actionBtn}>
+            아카이브
+          </Link>
+          <Link href="/dot" className={styles.actionBtn}>
+            dot · LED
+          </Link>
+          <Link href="/dot2" className={styles.actionBtn}>
+            dot2 · LED 이미지
+          </Link>
         </div>
       </div>
     </>

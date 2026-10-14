@@ -418,6 +418,16 @@
   text-decoration: underline;
 }
 
+.archiveNote {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #86efac;
+}
+
+.archiveNote a {
+  text-decoration: underline;
+}
+
 .leftMinimal {
   display: flex;
   flex-direction: column;

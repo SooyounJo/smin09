@@ -9,6 +9,13 @@ import { buildGoldenPalette } from "@/lib/sensory/goldenPalette";
 import { harmonizeKeyPalette } from "@/lib/sensory/mergePalette";
 import { mergeMotionProfile } from "@/lib/sensory/visualMotion";
 import AmbientSoundscape from "@/components/sensory/AmbientSoundscape";
+import Link from "next/link";
+import {
+  createArchiveId,
+  dataUrlToBlob,
+  saveArchiveEntry,
+  updateArchiveEntry,
+} from "@/lib/archive/archiveStore";
 import styles from "@/styles/pages/sensory.module.css";
 
 const MoodGradientWebGL = dynamic(
@@ -38,6 +45,8 @@ export default function TextSensoryWorkbench() {
   const [musicLoading, setMusicLoading] = useState(false);
   const [musicMode, setMusicMode] = useState(null);
   const [musicVarietySeed, setMusicVarietySeed] = useState("");
+  const [archiveId, setArchiveId] = useState(null);
+  const [archiveNote, setArchiveNote] = useState(null);
   const soundEngineRef = useRef(null);
   const motionBridgeRef = useRef(null);
   if (!motionBridgeRef.current) {
@@ -82,6 +91,8 @@ export default function TextSensoryWorkbench() {
     setLyriaAudioUrl(null);
     setMusicMode(null);
     setMusicVarietySeed("");
+    setArchiveId(null);
+    setArchiveNote(null);
     soundEngineRef.current?.stop();
     motionBridgeRef.current?.clear();
     setLoading(true);
@@ -107,21 +118,46 @@ export default function TextSensoryWorkbench() {
       const vivid = boostPaletteSaturation(golden.hexList, 0.28);
       const energy = result?.music?.energy ?? 0.35;
 
-      setColorRoles(
-        golden.roles.map((role, i) => ({ ...role, hex: vivid[i] || role.hex }))
-      );
+      const roles = golden.roles.map((role, i) => ({
+        ...role,
+        hex: vivid[i] || role.hex,
+      }));
+      setColorRoles(roles);
 
       const motion = mergeMotionProfile(
         DEFAULT_LOCAL,
         result?.visualComposition,
         result?.music
       );
-      setVisualSignature(
-        deriveVisualSignature(vivid, energy, motion, {
-          memoryFingerprint: trimmed,
-        })
-      );
+      const signature = deriveVisualSignature(vivid, energy, motion, {
+        memoryFingerprint: trimmed,
+      });
+      setVisualSignature(signature);
       setAnalysis(result);
+
+      const id = createArchiveId();
+      saveArchiveEntry({
+        id,
+        createdAt: Date.now(),
+        source: "text",
+        title: result?.music?.mood || trimmed.slice(0, 40),
+        sourceText: trimmed,
+        imageDataUrl: null,
+        paletteHex: roles.map((r) => r.hex),
+        colorRoles: roles,
+        visualSignature: signature,
+        energy,
+        shapeMode: "text",
+        analysis: result,
+        musicVarietySeed: varietySeed,
+        audioBlob: null,
+        audioMimeType: null,
+      })
+        .then(() => {
+          setArchiveId(id);
+          setArchiveNote("아카이브에 저장됨");
+        })
+        .catch(() => setArchiveNote("아카이브 저장 실패 (브라우저 저장소 확인)"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "분석 실패");
     } finally {
@@ -175,6 +211,17 @@ export default function TextSensoryWorkbench() {
           }
           url = result.dataUrl;
           setLyriaAudioUrl(url);
+          if (archiveId) {
+            dataUrlToBlob(url)
+              .then((blob) =>
+                updateArchiveEntry(archiveId, {
+                  audioBlob: blob,
+                  audioMimeType: result.mimeType || blob.type || "audio/mpeg",
+                })
+              )
+              .then(() => setArchiveNote("아카이브에 저장됨 · 음원 포함"))
+              .catch(() => setArchiveNote("음원 아카이브 저장 실패"));
+          }
         }
         soundEngineRef.current?.stop();
         soundEngineRef.current = null;
@@ -232,6 +279,11 @@ export default function TextSensoryWorkbench() {
           {loading ? "분석 중…" : "Generate"}
         </button>
         {error && <p className={styles.error}>{error}</p>}
+        {archiveNote && (
+          <p className={styles.archiveNote}>
+            {archiveNote} · <Link href="/archive">아카이브 보기</Link>
+          </p>
+        )}
       </section>
 
       <section className={styles.right}>

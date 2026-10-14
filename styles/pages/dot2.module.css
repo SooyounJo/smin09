@@ -1,0 +1,233 @@
+.root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: #efe9f6;
+  color-scheme: dark;
+  font-family: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+
+.topNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.85rem;
+}
+
+.topNav a {
+  opacity: 0.85;
+}
+
+.topNav a:hover {
+  text-decoration: underline;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 40px 20px 48px;
+}
+
+.stage {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.modes {
+  justify-self: start;
+  align-self: start;
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modes button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid #2a2530;
+  background: transparent;
+  color: #8e859c;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.modes button:hover {
+  color: #efe9f6;
+  border-color: #4a4252;
+}
+
+.modes .play {
+  margin-top: 10px;
+  border-color: #4a4252;
+  color: #efe9f6;
+}
+
+.modes button[aria-pressed="true"] {
+  color: #000;
+  background: #efe9f6;
+  border-color: #efe9f6;
+}
+
+.modeNum {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .stage {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .stage > span:first-child {
+    display: none;
+  }
+
+  .modes {
+    justify-self: center;
+    position: static;
+    flex-direction: row;
+  }
+
+  .modeLabel {
+    display: none;
+  }
+
+  .modes button {
+    padding: 6px;
+  }
+
+  .modes .play {
+    margin-top: 0;
+    margin-left: 6px;
+  }
+}
+
+.module {
+  position: relative;
+  padding: 12px;
+  background: #000;
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px #1d1a22,
+    0 18px 60px -24px rgba(150, 50, 190, 0.5);
+}
+
+.module canvas,
+.placeholder {
+  display: block;
+  /* 실제 패널 크기: 가로 10cm × 세로 19.5cm */
+  width: min(10cm, 86vw);
+  aspect-ratio: 10 / 19.5;
+  border-radius: 2px;
+}
+
+.screws span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1c1a20;
+}
+
+.screws span:nth-child(1) {
+  left: 3px;
+  top: 3px;
+}
+
+.screws span:nth-child(2) {
+  right: 3px;
+  top: 3px;
+}
+
+.screws span:nth-child(3) {
+  left: 3px;
+  bottom: 3px;
+}
+
+.screws span:nth-child(4) {
+  right: 3px;
+  bottom: 3px;
+}
+
+.controls {
+  width: min(320px, 86vw);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.row button {
+  font: inherit;
+  font-size: 14px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid #2a2530;
+  background: transparent;
+  color: #efe9f6;
+  cursor: pointer;
+}
+
+.row button[aria-pressed="true"] {
+  background: #efe9f6;
+  color: #000;
+  border-color: #efe9f6;
+}
+
+.ctl {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.ctl span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ctl output {
+  color: #8e859c;
+  font-variant-numeric: tabular-nums;
+}
+
+.ctl input[type="range"] {
+  width: 100%;
+  accent-color: #d64fd8;
+}

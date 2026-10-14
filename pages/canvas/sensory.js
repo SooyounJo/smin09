@@ -13,7 +13,7 @@ export default function SensoryPage() {
       <header className={styles.topNav}>
         <Link href="/canvas">← Canvas 목록</Link>
         <span>감각 심상 워크벤치</span>
-        <Link href="/">홈</Link>
+        <Link href="/archive">아카이브</Link>
       </header>
       <SensoryWorkbench />
     </div>
